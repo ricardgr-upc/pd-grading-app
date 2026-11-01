@@ -55,12 +55,32 @@ export function createClient({fetchImpl=globalThis.fetch.bind(globalThis),storag
  const allDocs=g=>Object.fromEntries(stages.map(s=>[s,state(g,s).doc]));
  async function verifyMetadata(){for(const [p,expected]of [['data/policy.json',policyHash],['data/pseudonymous-roster.json',rosterHash]]){const r=await remoteFile(p);if(!r.data||await fingerprint(r.data,cryptoImpl)!==expected)throw new Error('The grading policy or coded roster changed. Back up your work and reload before syncing.');}}
  async function sync(b){
-  assertOwner(b.group,b.teacher,b.takeover);await verifyMetadata();const st=state(b.group,b.stage),p=`coded-assessments/${bootstrap.roster.datasetId}/${b.group}/${b.stage}.json`,r=await remoteFile(p),rd=r.data||empty(b.group,b.stage);validate(rd);
+  assertOwner(b.group,b.teacher,b.takeover);await verifyMetadata();const st=state(b.group,b.stage);if(st.conflicts.length)return st;const p=`coded-assessments/${bootstrap.roster.datasetId}/${b.group}/${b.stage}.json`,r=await remoteFile(p),rd=r.data||empty(b.group,b.stage);validate(rd);
   const m=mergeThree(st.base.fields,st.doc.fields,rd.fields);st.doc={...st.doc,fields:m.merged,history:history(st.doc.history,rd.history)};st.base=rd;st.sha=r.sha;st.conflicts=m.conflicts;st.dirty=JSON.stringify(st.doc)!==JSON.stringify(rd);save(b.group,b.stage,st);
   if(m.conflicts.length)return st;
   validate(st.doc);
   if(st.dirty){const input={message:`Assessment: ${b.group} / ${b.stage} — ${b.teacher}`,content:encode64(JSON.stringify(st.doc,null,2)+'\n'),...(r.sha?{sha:r.sha}:{})};const result=await github(`${repoApi()}/contents/${p}`,{method:'PUT',body:JSON.stringify(input)});st.sha=result.content.sha;st.base=structuredClone(st.doc);st.dirty=false;}
-  st.lastSync=new Date().toISOString();save(b.group,b.stage,st);return st;
+  st.lastSync=new Date().toISOString();st.lastFetch=st.lastSync;save(b.group,b.stage,st);return st;
+ }
+ async function refreshAll(onProgress){
+  await verifyMetadata();
+  const meta={startedAt:new Date().toISOString(),finishedAt:null,processed:0,total:bootstrap.roster.groups.length*stages.length,error:null};
+  const metaKey=`${namespace}:refresh-meta`;storage.setItem(metaKey,JSON.stringify(meta));
+  for(const g of bootstrap.roster.groups)for(const s of stages){
+   try{
+    const st=state(g.id,s),p=`coded-assessments/${bootstrap.roster.datasetId}/${g.id}/${s}.json`,r=await remoteFile(p),rd=r.data||empty(g.id,s);validate(rd);
+    if(!r.data&&Object.keys(st.base.fields).length)throw new Error('A previously saved assessment file is missing on GitHub. Local work has been preserved; review the repository before refreshing this group.');
+    // Never clear an outstanding conflict merely because a second fetch sees the same remote base.
+    if(!st.conflicts.length){
+     const m=mergeThree(st.base.fields,st.doc.fields,rd.fields);
+     const doc={...st.doc,fields:m.merged,history:history(st.doc.history,rd.history)};
+     if(!m.conflicts.length)validate(doc);
+     st.doc=doc;st.base=rd;st.sha=r.sha;st.conflicts=m.conflicts;st.dirty=JSON.stringify(doc)!==JSON.stringify(rd);st.lastFetch=new Date().toISOString();save(g.id,s,st);
+    }
+    meta.processed++;storage.setItem(metaKey,JSON.stringify(meta));onProgress?.({...meta});
+   }catch(e){meta.error=e.message;storage.setItem(metaKey,JSON.stringify(meta));return meta;}
+  }
+  meta.finishedAt=new Date().toISOString();storage.setItem(metaKey,JSON.stringify(meta));return meta;
  }
  async function connect(secret){
   if(typeof secret!=='string'||!secret.trim())throw new Error('Enter your repository-scoped token');
@@ -81,7 +101,12 @@ export function createClient({fetchImpl=globalThis.fetch.bind(globalThis),storag
   if(url.pathname==='/api/bootstrap')return structuredClone(bootstrap);
   if(url.pathname==='/api/auth')return structuredClone(identity);
   if(url.pathname==='/api/group'){const g=url.searchParams.get('id');return Object.fromEntries(stages.map(s=>[s,state(g,s)]));}
-  if(url.pathname==='/api/overview')return bootstrap.roster.groups.map(g=>({group:g.id,students:g.students.map(s=>({id:s.id,...calculate(bootstrap.policy,allDocs(g.id),s.id)}))}));
+  if(url.pathname==='/api/overview')return bootstrap.roster.groups.map(g=>{
+   const records=stages.map(s=>state(g.id,s)),dates=records.map(st=>st.lastFetch||st.lastSync).filter(Boolean);
+   return {group:g.id,students:g.students.map(s=>({id:s.id,...calculate(bootstrap.policy,allDocs(g.id),s.id)})),conflicts:records.reduce((n,st)=>n+st.conflicts.length,0),dirty:records.some(st=>st.dirty),refreshedAt:dates.length===stages.length?dates.sort()[0]:null};
+  });
+  if(url.pathname==='/api/refresh-status'){const raw=storage.getItem(`${namespace}:refresh-meta`);return raw?JSON.parse(raw):null;}
+  if(url.pathname==='/api/refresh-all')return serial(()=>refreshAll(b?.onProgress));
   if(url.pathname==='/api/response')return serial(()=>{
    assertOwner(b.group,b.teacher,b.takeover);const st=state(b.group,b.stage);if(st.conflicts.length)throw new Error('Resolve conflicts before editing this record');const at=new Date().toISOString();
    for(const [k,v]of Object.entries(b.changes||{})){const old=st.doc.fields[k]?.value??null;if(old===v)continue;st.doc.fields[k]={value:v,by:b.teacher,at,login:identity.login};st.doc.history.push({id:cryptoImpl.randomUUID(),key:k,old,value:v,by:b.teacher,login:identity.login,at,takeover:!!b.takeover});}

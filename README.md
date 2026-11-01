@@ -22,6 +22,16 @@ Each objective has one global result across evidence views. Only Oral scientific
 
 This is a static application: no Node.js, GitHub CLI or server is needed on teachers' computers. GitHub Pages hosts only the public interface. GitHub's API enforces access to the private records. Repository-scoped tokens provide authentication; this is not an OAuth sign-in flow.
 
-The deployment workflow uploads only index.html, app.mjs, client.mjs, core.mjs, policy.json and style.css. Do not add student data, credentials, private roster files or the printed dictionary here. Source changes affect a page into which teachers enter credentials; restrict write access to trusted maintainers.
+The deployment workflow uploads only index.html, app.mjs, client.mjs, core.mjs, results.mjs, policy.json and style.css. Do not add student data, credentials, private roster files or the printed dictionary here. Source changes affect a page into which teachers enter credentials; restrict write access to trusted maintainers.
 
 The private dataset is versioned and fingerprinted. Policy or roster mismatches block imports/sync instead of silently migrating grades. Existing local-server assessments are a separate legacy dataset and are not automatically moved into the coded dataset.
+
+## Results dashboard
+
+After connecting and selecting a teacher, open **Results**, then click **Refresh all groups**. This reads every group's records from GitHub, including other reviewers' groups. It performs no repository writes, preserves unsynchronised local work and retains any conflicts. A partial refresh is labelled incomplete; retry when access or connectivity is restored. A previously saved file disappearing from GitHub does not silently erase its local assessment.
+
+The group-by-domain table shows the mean of students' results within each group. Single values are completed domains; ranges are provisional and include pending objectives. Click a group code to open its assessment. Reviewer and group-completion filters apply to all summaries, tables and Results exports.
+
+Domain averages use only completed student-domain scores, weighted equally per student, with the sample count shown. The overall final-grade mean uses fully assessed students only. Conflicting groups are excluded from completed averages until resolved. Larger groups contribute more students to domain averages; these are student-weighted, not equally weighted group averages.
+
+**Export groups CSV**, **Export domains CSV** and **Export filtered students CSV** download the current filtered results. The original header **Export CSV** still exports all students from this browser's current records. No grading-policy or existing assessment-format migration is needed for the Results dashboard.
