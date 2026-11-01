@@ -1,0 +1,1109 @@
+{
+  "version": 2,
+  "model": "global-objectives",
+  "criteria": [
+    {
+      "id": "c1",
+      "title": "Project Scheduling",
+      "weight": 0.1,
+      "anchors": {
+        "unattained": "- Did not deliver the initial Gantt chart - Failed to update the live Gantt chart by the end of the project",
+        "sufficient": "- Delivered the initial Gantt including most key identified tasks in scope - Succeeded in identifying most key task dependencies - Delivered the final Gantt reflecting real project status by the project deadline",
+        "excellence": "- Delivered both Gantts successfully as expected in content and timing, with dependencies identified - Correct retrospective analysis of gaps between initial and final Gantt is present - Contingency plan for risk management of critical parts of the project are included in the Gantt (ideally first Gantt) - Live Gantt has been correctly maintained throughout project development"
+      },
+      "components": [
+        {
+          "id": "c1.global",
+          "stage": "global",
+          "scope": "group",
+          "weight": 1,
+          "sufficient": [
+            {
+              "text": "The initial Gantt was delivered.",
+              "conditional": false,
+              "id": "c1.s1",
+              "evidenceStages": [
+                "repository"
+              ]
+            },
+            {
+              "text": "The initial Gantt includes most key tasks in scope.",
+              "conditional": false,
+              "id": "c1.s2",
+              "evidenceStages": [
+                "repository"
+              ]
+            },
+            {
+              "text": "Most key task dependencies are identified.",
+              "conditional": false,
+              "id": "c1.s3",
+              "evidenceStages": [
+                "repository"
+              ]
+            },
+            {
+              "text": "The final Gantt reflects actual project status.",
+              "conditional": false,
+              "id": "c1.s4",
+              "evidenceStages": [
+                "repository"
+              ]
+            },
+            {
+              "text": "The final Gantt was delivered by the project deadline.",
+              "conditional": false,
+              "id": "c1.s5",
+              "evidenceStages": [
+                "repository"
+              ]
+            }
+          ],
+          "excellence": [
+            {
+              "text": "Both Gantts meet the expected content and timing requirements.",
+              "conditional": false,
+              "id": "c1.e1",
+              "evidenceStages": [
+                "repository"
+              ]
+            },
+            {
+              "text": "A correct retrospective explains differences between initial and final plans.",
+              "conditional": false,
+              "id": "c1.e2",
+              "evidenceStages": [
+                "repository"
+              ]
+            },
+            {
+              "text": "Critical project risks have contingency plans represented in the Gantt; record whether they were present initially.",
+              "conditional": false,
+              "id": "c1.e3",
+              "evidenceStages": [
+                "repository"
+              ]
+            },
+            {
+              "text": "The live Gantt was maintained throughout development.",
+              "conditional": false,
+              "id": "c1.e4",
+              "evidenceStages": [
+                "repository"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c2",
+      "title": "Evidence gathering",
+      "weight": 0.1,
+      "anchors": {
+        "unattained": "- Information sources used are obsolete, inaccurate or untrustworthy - References used are irrelevant or only lightly related to the statements they support - Reference formatting applies a wrong format or a different style than the one required",
+        "sufficient": "- Information used is from trusted, rigorous sources - Sources used are deposited in the repository - Sources used are relevant for the statements they support - Sources are cited following the provided style guide",
+        "excellence": "- Reviews or book chapters are generally used to support statements about general context of the disease or topic discussed - Original papers are generally used to support statements about explicit facts and mechanisms that were demonstrated experimentally - Students demonstrate awareness of the difference between primary and secondary literature and select sources according to the type of claim being supported - References are commented, clearly identifying the sources most critical to the topic and those that are simply helpful for expanding the context provided"
+      },
+      "components": [
+        {
+          "id": "c2.global",
+          "stage": "global",
+          "scope": "group",
+          "weight": 1,
+          "sufficient": [
+            {
+              "text": "Sources are trustworthy, rigorous and sufficiently current for the claims.",
+              "conditional": false,
+              "id": "c2.s1",
+              "evidenceStages": [
+                "report"
+              ]
+            },
+            {
+              "text": "References support the statements to which they are attached.",
+              "conditional": false,
+              "id": "c2.s2",
+              "evidenceStages": [
+                "report"
+              ]
+            },
+            {
+              "text": "Citations and references follow the supplied style guide.",
+              "conditional": false,
+              "id": "c2.s3",
+              "evidenceStages": [
+                "report"
+              ]
+            },
+            {
+              "text": "The sources used are deposited in the repository.",
+              "conditional": false,
+              "id": "c2.s4",
+              "evidenceStages": [
+                "repository"
+              ]
+            }
+          ],
+          "excellence": [
+            {
+              "text": "Reviews or book chapters generally support general background claims.",
+              "conditional": false,
+              "id": "c2.e1",
+              "evidenceStages": [
+                "report"
+              ]
+            },
+            {
+              "text": "Original research generally supports specific experimentally demonstrated mechanisms or facts.",
+              "conditional": false,
+              "id": "c2.e2",
+              "evidenceStages": [
+                "report"
+              ]
+            },
+            {
+              "text": "Source selection demonstrates the distinction between primary and secondary literature.",
+              "conditional": false,
+              "id": "c2.e3",
+              "evidenceStages": [
+                "report"
+              ]
+            },
+            {
+              "text": "Reference annotations identify sources critical to the topic.",
+              "conditional": false,
+              "id": "c2.e4",
+              "evidenceStages": [
+                "repository"
+              ]
+            },
+            {
+              "text": "Annotations distinguish contextual reading from critical evidence.",
+              "conditional": false,
+              "id": "c2.e5",
+              "evidenceStages": [
+                "repository"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c3",
+      "title": "Bioinformatic database literacy",
+      "weight": 0.05,
+      "anchors": {
+        "unattained": "- Key databases for the disease amongst the ones showed in class are not used - Interpretation of the database results is incorrect",
+        "sufficient": "- The selected databases help to resolve the intended problem - Interpretation of database findings is correct - Databases are used correctly, identifying relevant candidates with clear rationale",
+        "excellence": "- Findings are documented with rationale on why they were chosen instead of others - When multiple database records or candidate results are available, the team selects among them using biologically and technically relevant criteria and documents that choice"
+      },
+      "components": [
+        {
+          "id": "c3.global",
+          "stage": "global",
+          "scope": "group",
+          "weight": 1,
+          "sufficient": [
+            {
+              "text": "The selected databases are relevant to the biological problem, including relevant key databases taught in class.",
+              "conditional": false,
+              "id": "c3.s1",
+              "evidenceStages": [
+                "report",
+                "repository",
+                "defence"
+              ]
+            },
+            {
+              "text": "Database use correctly identifies relevant candidates with a clear rationale.",
+              "conditional": false,
+              "id": "c3.s2",
+              "evidenceStages": [
+                "report",
+                "repository",
+                "defence"
+              ]
+            },
+            {
+              "text": "Database findings are interpreted correctly.",
+              "conditional": false,
+              "id": "c3.s3",
+              "evidenceStages": [
+                "report",
+                "repository",
+                "defence"
+              ]
+            }
+          ],
+          "excellence": [
+            {
+              "text": "Selected findings are justified against available alternatives.",
+              "conditional": false,
+              "id": "c3.e1",
+              "evidenceStages": [
+                "report",
+                "repository",
+                "defence"
+              ]
+            },
+            {
+              "text": "Selection among candidate records uses biologically and technically relevant criteria.",
+              "conditional": false,
+              "id": "c3.e2",
+              "evidenceStages": [
+                "report",
+                "repository",
+                "defence"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c4",
+      "title": "Disease understanding",
+      "weight": 0.1,
+      "anchors": {
+        "unattained": "- Basic biological understanding of the disease is not obtained - The essential concepts of gene, protein, structure and function are unclear, confused or incorrect ",
+        "sufficient": "- The origin and consequences of the disease are understood - The main genetic, protein-level, structural and functional causes are identified ",
+        "excellence": "- Relevant regulatory or functional pathways are identified when applicable if they exist, as well as important downstream physiological or systemic processes affected - The clinical consequences of the disease are understood, as well as their human impact"
+      },
+      "components": [
+        {
+          "id": "c4.global",
+          "stage": "global",
+          "scope": "group",
+          "weight": 1,
+          "sufficient": [
+            {
+              "text": "The disease's origin is explained correctly.",
+              "conditional": false,
+              "id": "c4.s1",
+              "evidenceStages": [
+                "report",
+                "defence"
+              ]
+            },
+            {
+              "text": "Its main consequences are explained correctly.",
+              "conditional": false,
+              "id": "c4.s2",
+              "evidenceStages": [
+                "report",
+                "defence"
+              ]
+            },
+            {
+              "text": "Relevant genetic causes are identified correctly.",
+              "conditional": false,
+              "id": "c4.s3",
+              "evidenceStages": [
+                "report",
+                "defence"
+              ]
+            },
+            {
+              "text": "Relevant protein-level, structural and functional causes are identified and distinguished correctly.",
+              "conditional": false,
+              "id": "c4.s4",
+              "evidenceStages": [
+                "report",
+                "defence"
+              ]
+            }
+          ],
+          "excellence": [
+            {
+              "text": "Relevant regulatory or functional pathways are explained (conditional: when applicable).",
+              "conditional": true,
+              "id": "c4.e1",
+              "evidenceStages": [
+                "report",
+                "defence"
+              ]
+            },
+            {
+              "text": "Important downstream physiological or systemic effects are explained.",
+              "conditional": false,
+              "id": "c4.e2",
+              "evidenceStages": [
+                "report",
+                "defence"
+              ]
+            },
+            {
+              "text": "Clinical consequences are understood.",
+              "conditional": false,
+              "id": "c4.e3",
+              "evidenceStages": [
+                "report",
+                "defence"
+              ]
+            },
+            {
+              "text": "The human impact of the disease is understood.",
+              "conditional": false,
+              "id": "c4.e4",
+              "evidenceStages": [
+                "report",
+                "defence"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c5",
+      "title": "Bioinformatic analysis",
+      "weight": 0.1,
+      "anchors": {
+        "unattained": "- The techniques shown in class are not applied or applied incorrectly - The interpretation of the output of each type of alignment is mistaken or incorrect",
+        "sufficient": "- The techniques learned which are relevant to the project topic are applied correctly - The species chosen are justified and useful for the topic of analysis - The output is shared in a clear, understandable format",
+        "excellence": "- Strong understanding of the techniques used is displayed - The chosen species for comparison are relevant for comparison - Where applicable and possible, reference and disease-associated human sequences or variants are incorporated into the analysis - The team understands what conclusions can and cannot reasonably be drawn from each analysis performed"
+      },
+      "components": [
+        {
+          "id": "c5.global",
+          "stage": "global",
+          "scope": "group",
+          "weight": 1,
+          "sufficient": [
+            {
+              "text": "Relevant techniques taught in class are applied correctly.",
+              "conditional": false,
+              "id": "c5.s1",
+              "evidenceStages": [
+                "report",
+                "repository",
+                "defence"
+              ]
+            },
+            {
+              "text": "Species choices are justified and useful for the question.",
+              "conditional": false,
+              "id": "c5.s2",
+              "evidenceStages": [
+                "report",
+                "repository",
+                "defence"
+              ]
+            },
+            {
+              "text": "Analysis outputs are presented clearly and understandably.",
+              "conditional": false,
+              "id": "c5.s3",
+              "evidenceStages": [
+                "report",
+                "repository",
+                "defence"
+              ]
+            },
+            {
+              "text": "Alignment outputs are interpreted correctly.",
+              "conditional": false,
+              "id": "c5.s4",
+              "evidenceStages": [
+                "report",
+                "repository",
+                "defence"
+              ]
+            }
+          ],
+          "excellence": [
+            {
+              "text": "The work demonstrates strong understanding of the techniques used.",
+              "conditional": false,
+              "id": "c5.e1",
+              "evidenceStages": [
+                "report",
+                "repository",
+                "defence"
+              ]
+            },
+            {
+              "text": "Species selection specifically supports a meaningful biological comparison.",
+              "conditional": false,
+              "id": "c5.e2",
+              "evidenceStages": [
+                "report",
+                "repository",
+                "defence"
+              ]
+            },
+            {
+              "text": "Reference and disease-associated human sequences or variants are incorporated (conditional: where applicable and possible).",
+              "conditional": true,
+              "id": "c5.e3",
+              "evidenceStages": [
+                "report",
+                "repository",
+                "defence"
+              ]
+            },
+            {
+              "text": "Conclusions are justified within the capabilities and limits of each analysis.",
+              "conditional": false,
+              "id": "c5.e4",
+              "evidenceStages": [
+                "report",
+                "repository",
+                "defence"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c6",
+      "title": "Structural and evolutionary reasoning",
+      "weight": 0.1,
+      "anchors": {
+        "unattained": "- The interpretation of structural findings between the reference and disease-associated states is unclear or not understood - Awareness of the differences in structure and function between humans and other species is not obtained or understood - There is no clear rationale of why the structure is impacting the function",
+        "sufficient": "- The team understands the observed results and can explain them and their consequences from a structural perspective - Homologs are clearly identified, and the conservation (or loss of conservation) of the key functional domain(s) is understood alongside its consequences",
+        "excellence": "- A strong understanding exists of the relevant protein findings across the structural levels applicable to the project (eg sequence, tertiary and quaternary structure)"
+      },
+      "components": [
+        {
+          "id": "c6.global",
+          "stage": "global",
+          "scope": "group",
+          "weight": 1,
+          "sufficient": [
+            {
+              "text": "Structural findings are explained correctly, including reference/disease-associated comparisons where applicable.",
+              "conditional": false,
+              "id": "c6.s1",
+              "evidenceStages": [
+                "report",
+                "defence"
+              ]
+            },
+            {
+              "text": "Structural observations are connected to functional consequences with a clear rationale.",
+              "conditional": false,
+              "id": "c6.s2",
+              "evidenceStages": [
+                "report",
+                "defence"
+              ]
+            },
+            {
+              "text": "Homologs are identified correctly.",
+              "conditional": false,
+              "id": "c6.s3",
+              "evidenceStages": [
+                "report",
+                "defence"
+              ]
+            },
+            {
+              "text": "Conservation or loss of conservation of relevant functional domains is explained with its consequences.",
+              "conditional": false,
+              "id": "c6.s4",
+              "evidenceStages": [
+                "report",
+                "defence"
+              ]
+            },
+            {
+              "text": "Relevant human/other-species differences in structure and function are understood.",
+              "conditional": false,
+              "id": "c6.s5",
+              "evidenceStages": [
+                "report",
+                "defence"
+              ]
+            }
+          ],
+          "excellence": [
+            {
+              "text": "Findings are reasoned through at the sequence level.",
+              "conditional": false,
+              "id": "c6.e1",
+              "evidenceStages": [
+                "report",
+                "defence"
+              ]
+            },
+            {
+              "text": "Findings are reasoned through at the tertiary-structure level (conditional: applicable to the project).",
+              "conditional": true,
+              "id": "c6.e2",
+              "evidenceStages": [
+                "report",
+                "defence"
+              ]
+            },
+            {
+              "text": "Findings are reasoned through at the quaternary-structure level (conditional: applicable to the project).",
+              "conditional": true,
+              "id": "c6.e3",
+              "evidenceStages": [
+                "report",
+                "defence"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c7",
+      "title": "Knowledge integration",
+      "weight": 0.05,
+      "anchors": {
+        "unattained": "- The team fails to integrate their evidence and information at the disease level with the experimental findings at gene, protein, structure and function level - The team is unable to explain the difference between impact at gene, protein, structure and function level - Each part of the project is generated in a disconnected way, without identifying and integrating all information towards a clear biological understanding of the problem",
+        "sufficient": "- The team is able to understand the disease and how it manifests at genetic, protein, structure and functional levels - The awareness on evolutionary differences between species is explained by understanding their similarities at gene, protein and function levels in an integrated way",
+        "excellence": "- The team can reason about the biological problem in an integrated way and connect it to the clinical reality of patients - The importance of the findings at molecular level is reasoned through a biological understanding of the problem at different scales"
+      },
+      "components": [
+        {
+          "id": "c7.global",
+          "stage": "global",
+          "scope": "group",
+          "weight": 1,
+          "sufficient": [
+            {
+              "text": "Disease manifestations are connected across genetic, protein, structural and functional levels.",
+              "conditional": false,
+              "id": "c7.s1",
+              "evidenceStages": [
+                "report",
+                "defence"
+              ]
+            },
+            {
+              "text": "Evidence and analysis findings form a coherent biological explanation rather than disconnected sections.",
+              "conditional": false,
+              "id": "c7.s2",
+              "evidenceStages": [
+                "report",
+                "defence"
+              ]
+            },
+            {
+              "text": "Evolutionary similarities and differences are explained through integrated gene, protein and functional reasoning.",
+              "conditional": false,
+              "id": "c7.s3",
+              "evidenceStages": [
+                "report",
+                "defence"
+              ]
+            }
+          ],
+          "excellence": [
+            {
+              "text": "Molecular findings are connected explicitly to patients' clinical reality.",
+              "conditional": false,
+              "id": "c7.e1",
+              "evidenceStages": [
+                "report",
+                "defence"
+              ]
+            },
+            {
+              "text": "The biological significance of findings is reasoned across molecular, organismal and clinical scales.",
+              "conditional": false,
+              "id": "c7.e2",
+              "evidenceStages": [
+                "report",
+                "defence"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c8",
+      "title": "Written scientific communication",
+      "weight": 0.1,
+      "anchors": {
+        "unattained": "- Report format is not respected - Argumentation is weak or not explained clearly - Concepts explained are not coherent to the topic of the project or excessive unnecessary information is included - No attribution is given to the work of each team member",
+        "sufficient": "- Argumentation is clear, concise and relevant to the topic of the project - Good argumental coherence exists across all sections of the report - The required report format is respected - Attribution of each team member to tasks, report sections and decisions is clear",
+        "excellence": "- Results and discussion are different and well constructed - Abstract respects length and is concise, informative and representative of the project - All concepts mentioned are correctly cited and explained without unreasonably going beyond the project's topic"
+      },
+      "components": [
+        {
+          "id": "c8.global",
+          "stage": "global",
+          "scope": "group",
+          "weight": 1,
+          "sufficient": [
+            {
+              "text": "Argumentation is clear.",
+              "conditional": false,
+              "id": "c8.s1",
+              "evidenceStages": [
+                "report"
+              ]
+            },
+            {
+              "text": "Writing is concise and relevant, without excessive unnecessary material.",
+              "conditional": false,
+              "id": "c8.s2",
+              "evidenceStages": [
+                "report"
+              ]
+            },
+            {
+              "text": "Sections form a coherent argument.",
+              "conditional": false,
+              "id": "c8.s3",
+              "evidenceStages": [
+                "report"
+              ]
+            },
+            {
+              "text": "The required report format is respected.",
+              "conditional": false,
+              "id": "c8.s4",
+              "evidenceStages": [
+                "report"
+              ]
+            },
+            {
+              "text": "Each member's tasks are attributed clearly.",
+              "conditional": false,
+              "id": "c8.s5",
+              "evidenceStages": [
+                "report"
+              ]
+            },
+            {
+              "text": "Each member's report sections and decisions are attributed clearly.",
+              "conditional": false,
+              "id": "c8.s6",
+              "evidenceStages": [
+                "report"
+              ]
+            }
+          ],
+          "excellence": [
+            {
+              "text": "Results and discussion are distinct and well constructed.",
+              "conditional": false,
+              "id": "c8.e1",
+              "evidenceStages": [
+                "report"
+              ]
+            },
+            {
+              "text": "The abstract respects its length requirement.",
+              "conditional": false,
+              "id": "c8.e2",
+              "evidenceStages": [
+                "report"
+              ]
+            },
+            {
+              "text": "The abstract is concise, informative and representative.",
+              "conditional": false,
+              "id": "c8.e3",
+              "evidenceStages": [
+                "report"
+              ]
+            },
+            {
+              "text": "Scientific concepts are correctly cited and explained within the project's scope.",
+              "conditional": false,
+              "id": "c8.e4",
+              "evidenceStages": [
+                "report"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c9",
+      "title": "Oral scientific communication",
+      "weight": 0.1,
+      "anchors": {
+        "unattained": "- Individual team members show lacking understanding of the content they defend in the written report - Team members fail to explain their findings or statements meaningfully - There is insufficient team member coordination during presentation - Team members show \"niche awareness\" and only know about the tasks they executed themselves",
+        "sufficient": "- All team members show a good understanding of all parts of the project - All claims made in the written report are successfully defended and owned by all team members - Presentation strategy is clear and coordinated - The support used (either existing or not) contributes meaningfully to explaining and defending the project",
+        "excellence": "- Team members show excellent preparation, coordination and division of roles according to their strategy - Questions are addressed correctly within the expected level of understanding, concisely and answers distinguish evidence-supported reasoning from unsupported speculation - All team members display excellent understanding of the project as a whole"
+      },
+      "components": [
+        {
+          "id": "c9.1",
+          "stage": "defence",
+          "scope": "group",
+          "weight": 0.3,
+          "sufficient": [
+            {
+              "text": "Presentation strategy is clear.",
+              "conditional": false,
+              "id": "c9.1.s1",
+              "evidenceStages": [
+                "defence"
+              ]
+            },
+            {
+              "text": "Delivery is coordinated across members.",
+              "conditional": false,
+              "id": "c9.1.s2",
+              "evidenceStages": [
+                "defence"
+              ]
+            },
+            {
+              "text": "Presentation support, including a deliberate choice not to use aids, contributes meaningfully to the explanation.",
+              "conditional": false,
+              "id": "c9.1.s3",
+              "evidenceStages": [
+                "defence"
+              ]
+            }
+          ],
+          "excellence": [
+            {
+              "text": "The team demonstrates excellent preparation and coordination.",
+              "conditional": false,
+              "id": "c9.1.e1",
+              "evidenceStages": [
+                "defence"
+              ]
+            },
+            {
+              "text": "Division of roles serves the presentation strategy effectively.",
+              "conditional": false,
+              "id": "c9.1.e2",
+              "evidenceStages": [
+                "defence"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "c9.2",
+          "stage": "defence",
+          "scope": "individual",
+          "weight": 0.7,
+          "sufficient": [
+            {
+              "text": "The student demonstrates good understanding across all parts of the project, beyond their own tasks.",
+              "conditional": false,
+              "id": "c9.2.s1",
+              "evidenceStages": [
+                "defence"
+              ]
+            },
+            {
+              "text": "The student meaningfully explains the findings and statements they present.",
+              "conditional": false,
+              "id": "c9.2.s2",
+              "evidenceStages": [
+                "defence"
+              ]
+            },
+            {
+              "text": "The student can defend report claims when asked.",
+              "conditional": false,
+              "id": "c9.2.s3",
+              "evidenceStages": [
+                "defence"
+              ]
+            }
+          ],
+          "excellence": [
+            {
+              "text": "Answers are correct at the expected level.",
+              "conditional": false,
+              "id": "c9.2.e1",
+              "evidenceStages": [
+                "defence"
+              ]
+            },
+            {
+              "text": "Answers are concise.",
+              "conditional": false,
+              "id": "c9.2.e2",
+              "evidenceStages": [
+                "defence"
+              ]
+            },
+            {
+              "text": "Answers distinguish evidence-supported reasoning from unsupported speculation.",
+              "conditional": false,
+              "id": "c9.2.e3",
+              "evidenceStages": [
+                "defence"
+              ]
+            },
+            {
+              "text": "The student demonstrates excellent understanding of the whole project.",
+              "conditional": false,
+              "id": "c9.2.e4",
+              "evidenceStages": [
+                "defence"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c10",
+      "title": "Project Execution",
+      "weight": 0.1,
+      "anchors": {
+        "unattained": "- Incorrect identification of the problem to be solved - Incorrect splitting of the problems into tasks to be completed - Most tasks are assigned to several or all team members - Project deliverables are submitted without respecting deadlines",
+        "sufficient": "- Research problem is correctly identified - Each part of the research problem is split into actionable tasks - Most tasks are assigned fairly across team members - All deliverables are on time",
+        "excellence": "- Obstacles are identified early, documented and addressed through appropriate adaptation or previously planned mitigation when available - Most tasks are successfully completed within the team's own planned timelines - Decision-making or complex tasks are performed by several members and operational tasks are done by individuals"
+      },
+      "components": [
+        {
+          "id": "c10.1",
+          "stage": "repository",
+          "scope": "group",
+          "weight": 0.7,
+          "sufficient": [
+            {
+              "text": "The research problem is identified correctly.",
+              "conditional": false,
+              "id": "c10.1.s1",
+              "evidenceStages": [
+                "repository"
+              ]
+            },
+            {
+              "text": "The problem is divided into actionable tasks.",
+              "conditional": false,
+              "id": "c10.1.s2",
+              "evidenceStages": [
+                "repository"
+              ]
+            },
+            {
+              "text": "Most tasks are assigned fairly across members.",
+              "conditional": false,
+              "id": "c10.1.s3",
+              "evidenceStages": [
+                "repository"
+              ]
+            },
+            {
+              "text": "Deliverables meet their deadlines.",
+              "conditional": false,
+              "id": "c10.1.s4",
+              "evidenceStages": [
+                "repository"
+              ]
+            }
+          ],
+          "excellence": [
+            {
+              "text": "Obstacles are identified early and documented.",
+              "conditional": false,
+              "id": "c10.1.e1",
+              "evidenceStages": [
+                "repository"
+              ]
+            },
+            {
+              "text": "Obstacles are addressed through adaptation or planned mitigation.",
+              "conditional": false,
+              "id": "c10.1.e2",
+              "evidenceStages": [
+                "repository"
+              ]
+            },
+            {
+              "text": "Most tasks meet the team's planned timelines.",
+              "conditional": false,
+              "id": "c10.1.e3",
+              "evidenceStages": [
+                "repository"
+              ]
+            },
+            {
+              "text": "Complex decisions involve several members while operational work has individual ownership.",
+              "conditional": false,
+              "id": "c10.1.e4",
+              "evidenceStages": [
+                "repository"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "c10.2",
+          "stage": "repository",
+          "scope": "individual",
+          "weight": 0.3,
+          "sufficient": [
+            {
+              "text": "The student has clear responsibility for an appropriate share of actionable tasks.",
+              "conditional": false,
+              "id": "c10.2.s1",
+              "evidenceStages": [
+                "repository"
+              ]
+            },
+            {
+              "text": "The student fulfils their assigned responsibilities in time for the team's deliverables.",
+              "conditional": false,
+              "id": "c10.2.s2",
+              "evidenceStages": [
+                "repository"
+              ]
+            }
+          ],
+          "excellence": [
+            {
+              "text": "The student's assigned tasks generally meet the team's planned timelines.",
+              "conditional": false,
+              "id": "c10.2.e1",
+              "evidenceStages": [
+                "repository"
+              ]
+            },
+            {
+              "text": "The student owns operational work and participates appropriately in collaborative complex decisions.",
+              "conditional": false,
+              "id": "c10.2.e2",
+              "evidenceStages": [
+                "repository"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c11",
+      "title": "Project Documentation",
+      "weight": 0.1,
+      "anchors": {
+        "unattained": "- The project formatting requirements are not respected - Commits are done by a single individual - Commits are done in bulk or at deadlines instead of as continuous progress increments - Contribution of different team members varies greatly",
+        "sufficient": "- All team members contribute reasonably to the project progress - Commits are incremental during the project development - The repository is structured and organized cleanly during the entire project development",
+        "excellence": "- Commits show clear governance of tasks: operational tasks are performed by individuals and complex tasks receive commits from multiple team members - Commits consistently contain clear, brief comments highlighting the content and rationale of the changes made - The Git history faithfully reflects progressive project development, without substantial work being completed outside version control and subsequently bulk-uploaded"
+      },
+      "components": [
+        {
+          "id": "c11.1",
+          "stage": "repository",
+          "scope": "group",
+          "weight": 0.5,
+          "sufficient": [
+            {
+              "text": "The repository respects the required project formatting.",
+              "conditional": false,
+              "id": "c11.1.s1",
+              "evidenceStages": [
+                "repository"
+              ]
+            },
+            {
+              "text": "Repository structure remains clean and organised throughout development.",
+              "conditional": false,
+              "id": "c11.1.s2",
+              "evidenceStages": [
+                "repository"
+              ]
+            },
+            {
+              "text": "History shows incremental progress rather than deadline-only bulk uploads.",
+              "conditional": false,
+              "id": "c11.1.s3",
+              "evidenceStages": [
+                "repository"
+              ]
+            },
+            {
+              "text": "Contributions are reasonably distributed across the team.",
+              "conditional": false,
+              "id": "c11.1.s4",
+              "evidenceStages": [
+                "repository"
+              ]
+            }
+          ],
+          "excellence": [
+            {
+              "text": "History shows individual operational ownership and collaboration on complex tasks.",
+              "conditional": false,
+              "id": "c11.1.e1",
+              "evidenceStages": [
+                "repository"
+              ]
+            },
+            {
+              "text": "Commit messages clearly and briefly explain content and rationale.",
+              "conditional": false,
+              "id": "c11.1.e2",
+              "evidenceStages": [
+                "repository"
+              ]
+            },
+            {
+              "text": "Git history faithfully represents progressive development without substantial off-repository work later bulk-uploaded.",
+              "conditional": false,
+              "id": "c11.1.e3",
+              "evidenceStages": [
+                "repository"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "c11.2",
+          "stage": "repository",
+          "scope": "individual",
+          "weight": 0.5,
+          "sufficient": [
+            {
+              "text": "The student contributes reasonably to project progress.",
+              "conditional": false,
+              "id": "c11.2.s1",
+              "evidenceStages": [
+                "repository"
+              ]
+            },
+            {
+              "text": "The student's changes show incremental work throughout their period of involvement.",
+              "conditional": false,
+              "id": "c11.2.s2",
+              "evidenceStages": [
+                "repository"
+              ]
+            }
+          ],
+          "excellence": [
+            {
+              "text": "The student's contributions reflect appropriate task ownership and collaboration.",
+              "conditional": false,
+              "id": "c11.2.e1",
+              "evidenceStages": [
+                "repository"
+              ]
+            },
+            {
+              "text": "Their commit messages clearly and briefly explain content and rationale.",
+              "conditional": false,
+              "id": "c11.2.e2",
+              "evidenceStages": [
+                "repository"
+              ]
+            },
+            {
+              "text": "Their history represents progressive development rather than substantial off-repository work later bulk-uploaded.",
+              "conditional": false,
+              "id": "c11.2.e3",
+              "evidenceStages": [
+                "repository"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
