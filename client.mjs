@@ -10,7 +10,17 @@ export function createClient({fetchImpl=globalThis.fetch.bind(globalThis),storag
  async function github(endpoint,options={}){
   const r=await fetchImpl(`https://api.github.com/${endpoint}`,{...options,headers:{'Accept':'application/vnd.github+json','Authorization':`Bearer ${token}`,'X-GitHub-Api-Version':'2022-11-28',...(options.body?{'Content-Type':'application/json'}:{})},signal:AbortSignal.timeout(30000),cache:'no-store',credentials:'omit',referrerPolicy:'no-referrer'});
   if(r.status===404&&options.missing)return null;
-  if(!r.ok){const messages={401:'GitHub sign-in expired or the token is invalid. Reconnect; locally saved work is retained.',403:'GitHub refused access. Check repository permissions, token expiry or rate limits.',404:'Private repository or file is unavailable. Check your token’s selected repository.',409:'GitHub changed during this sync. Retry to fetch and reconcile the latest version.',422:'GitHub rejected the update. Retry after checking the latest repository state.'};throw new Error(messages[r.status]||`GitHub request failed (${r.status}). Local work is retained.`);}
+  if(!r.ok){
+   let detail='';try{detail=String((await r.json()).message||'');}catch{}
+   detail=detail.split(token).join('[redacted]').replace(/github_pat_[A-Za-z0-9_]+|gh[pousr]_[A-Za-z0-9_]+/g,'[redacted]').slice(0,240);
+   const action=endpoint==='user'?'checking your GitHub account':endpoint.includes('/contents/')?(options.method==='PUT'?'saving assessment files':'reading private assessment files'):'checking private repository access';
+   if((r.status===403||r.status===429)&&(r.headers.get('x-ratelimit-remaining')==='0'||r.headers.get('retry-after')||/rate limit|abuse detection/i.test(detail))){
+    const reset=Number(r.headers.get('x-ratelimit-reset'));const when=reset?` Retry after ${new Date(reset*1000).toLocaleTimeString()}.`:' Wait before retrying.';
+    throw new Error(`GitHub rate limit reached while ${action}.${when} Local work is retained.`);
+   }
+   const messages={401:'GitHub sign-in expired or the token is invalid. Reconnect; locally saved work is retained.',403:`GitHub refused access while ${action} (403). ${detail||'Access was denied.'} Check the token resource owner is ricardgr-upc, selected repository is pd_grading_ibteam, and repository Contents permission is Read and write. If the token shows Pending, its owner must approve it.`,404:'Private repository or file is unavailable. Check your token’s selected repository.',409:'GitHub changed during this sync. Retry to fetch and reconcile the latest version.',422:'GitHub rejected the update. Retry after checking the latest repository state.'};
+   throw new Error(messages[r.status]||`GitHub request failed while ${action} (${r.status}). Local work is retained.`);
+  }
   return r.json();
  }
  const repoApi=()=>`repos/${repository}`;
