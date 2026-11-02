@@ -3,6 +3,9 @@ export const recordStages=[...stages,'questions'];
 export const linkedQuestionId=(objective,subject)=>`linked:${objective}:${subject}`;
 export const questionKey=(id,field)=>`${id}|${field}`;
 export const questionValue=(doc,id,field)=>doc?.fields?.[questionKey(id,field)]?.value??'';
+export function questionFromEvidence(note='',reference=''){
+ return [note.trim(),reference.trim()].filter(Boolean).join('\n\n');
+}
 export function questionCatalogue(policy,group){
  const entries=new Map();
  for(const criterion of policy.criteria)for(const comp of criterion.components)for(const tier of ['sufficient','excellence'])for(const objective of comp[tier])for(const subject of comp.scope==='group'?['group']:group.students.map(s=>s.id)){
@@ -29,6 +32,6 @@ export function collectQuestions(doc,policy,group,assessmentDocs={}){
  const linked=[...catalogue.keys()].filter(id=>ids.has(id)),extra=[...ids].filter(id=>!catalogue.has(id)).sort((a,b)=>(doc.fields[questionKey(a,'prompt')]?.at||'').localeCompare(doc.fields[questionKey(b,'prompt')]?.at||''));
  return [...linked,...extra].filter(id=>questionValue(doc,id,'active')==='yes').map(id=>{
   const context=catalogue.get(id)||{id,kind:'extra',domain:'Additional question',subject:questionValue(doc,id,'subject')||'group'};
-  return {...context,prompt:questionValue(doc,id,'prompt'),answer:questionValue(doc,id,'answer'),resolved:questionValue(doc,id,'state')==='resolved',gradingNote:context.kind==='linked'?value(assessmentDocs[context.recordStage],context.objective,context.subject,'note'):'',attainment:context.kind==='linked'?value(assessmentDocs[context.recordStage],context.objective,context.subject):null};
+  return {...context,prompt:questionValue(doc,id,'prompt'),answer:questionValue(doc,id,'answer'),resolved:questionValue(doc,id,'state')==='resolved',gradingReference:context.kind==='linked'?value(assessmentDocs[context.recordStage],context.objective,context.subject,'evidence'):'',gradingNote:context.kind==='linked'?value(assessmentDocs[context.recordStage],context.objective,context.subject,'note'):'',attainment:context.kind==='linked'?value(assessmentDocs[context.recordStage],context.objective,context.subject):null};
  });
 }

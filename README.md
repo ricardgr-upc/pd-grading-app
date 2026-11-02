@@ -42,7 +42,7 @@ The current formula is `proportional-excellence-v1`: domain score = `5S + 5SE`. 
 
 ## Defence questions
 
-Each assessment item has a **Question for the defence** checkbox. Checking it creates one linked question in the group's shared **Defence questions** panel. Its initial text is copied from the existing grading note, if present; edit the question separately without changing the original explanation. Unchecking the marker hides the linked question while retaining its text and answer for later use. Rechecking reopens it.
+Each assessment item has a **Question for the defence** checkbox. Checking it creates one linked question in the group's shared **Defence questions** panel. Its initial text combines the existing grading note and evidence reference / defence-question field, separated by a blank line (empty fields are omitted); edit the question separately without changing the original explanation. Unchecking the marker hides the linked question while retaining its text and answer for later use. Rechecking reopens it. Existing edited questions are preserved; their original notes and reference remain available together in the panel.
 
 The panel is the same in All objectives, Report, Repository and Defence, independent of the Pending-only filter. It shows the rubric domain and group/student target. **Add question** creates a standalone question, addressed to the whole group or an individual code. Record an answer under **Answer / defence evidence** and mark it **Resolved** when addressed. Resolved questions are retained; enable **Show resolved questions** to review or reopen them.
 
