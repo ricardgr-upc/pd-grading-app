@@ -25,7 +25,15 @@ export function createClient({fetchImpl=globalThis.fetch.bind(globalThis),storag
   return r.json();
  }
  const repoApi=()=>`repos/${repository}`;
- async function remoteFile(p){const r=await github(`${repoApi()}/contents/${p}`,{missing:true});return r?{sha:r.sha,data:JSON.parse(decode64(r.content))}:{sha:null,data:null};}
+ async function remoteFile(p){
+  const r=await github(`${repoApi()}/contents/${p}`,{missing:true});if(!r)return {sha:null,data:null};
+  // Contents responses omit inline data above 1 MB. Read the immutable blob
+  // identified by the returned SHA, keeping content and sync revision together.
+  const payload=r.encoding==='none'||!r.content?await github(`${repoApi()}/git/blobs/${r.sha}`):r;
+  if(typeof payload.content!=='string'||!payload.content.trim())throw new Error(`GitHub returned empty content for ${p}. Local work is retained; retry without clearing browser data.`);
+  let data;try{data=JSON.parse(decode64(payload.content));}catch{throw new Error(`Cannot read JSON in ${p}. The saved file may be incomplete or invalid. Local work is retained; do not clear browser data.`);}
+  return {sha:r.sha,data};
+ }
  const getGroup=g=>{const x=bootstrap.roster.groups.find(x=>x.id===g);if(!x)throw new Error('Unknown group');return x;};
  const checkStage=s=>{if(!recordStages.includes(s))throw new Error('Unknown assessment view');};
  const empty=(g,s)=>({schemaVersion:1,policyVersion:bootstrap.policy.version,policyHash,rosterHash,group:g,stage:s,fields:{},history:[]});
