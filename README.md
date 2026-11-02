@@ -22,7 +22,7 @@ Each objective has one global result across evidence views. Only Oral scientific
 
 This is a static application: no Node.js, GitHub CLI or server is needed on teachers' computers. GitHub Pages hosts only the public interface. GitHub's API enforces access to the private records. Repository-scoped tokens provide authentication; this is not an OAuth sign-in flow.
 
-The deployment workflow uploads only index.html, app.mjs, client.mjs, core.mjs, results.mjs, questions.mjs, policy.json and style.css. Do not add student data, credentials, private roster files or the printed dictionary here. Source changes affect a page into which teachers enter credentials; restrict write access to trusted maintainers.
+The deployment workflow uploads only index.html, app.mjs, client.mjs, core.mjs, results.mjs, questions.mjs, profiles.mjs, policy.json and style.css. Do not add student data, credentials, private roster files or the printed dictionary here. Source changes affect a page into which teachers enter credentials; restrict write access to trusted maintainers.
 
 The private dataset is versioned and fingerprinted. Policy or roster mismatches block imports/sync instead of silently migrating grades. Existing local-server assessments are a separate legacy dataset and are not automatically moved into the coded dataset.
 
@@ -45,3 +45,7 @@ The current formula is `proportional-excellence-v1`: domain score = `5S + 5SE`. 
 Fill an item's **Defence question** field to include it automatically in the shared panel across all assessment tabs. Clearing it removes the card; notes alone do not create a question. Cards show the current **Notes or justification** and **Defence question** directly from the item. There is no copied linked-question editor, marker or resolved state. Met / Not met / Pending remains the explicit grading decision and does not hide the question.
 
 Use **Open linked item** to edit those source fields. **Add question** still creates a standalone editable question addressed to a group or individual code. Answers are retained separately and included in sync and backups. Existing copied question text and legacy flags remain stored for backup compatibility but no longer control linked cards. Original item content and marks are preserved. All teachers should reload the updated interface.
+
+## Student rubric profiles
+
+Results includes a group selector (including All groups) and one profile per student across the eleven dimensions. It uses each dimension's score out of 10 before final weighting. Solid segments join completed domains; dashed segments trace provisional lower bounds. Range bars show possible upper bounds for a selected student or small group. Click a student code to highlight its profile and view exact scores, ranges and coverage; click again or Show all lines to reset. Chart selection is independent of the other dashboard filters. Conflicted groups are excluded and counted. Refresh all groups first to retrieve colleagues' work. The chart reads existing records and never changes grades.

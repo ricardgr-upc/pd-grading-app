@@ -1,3 +1,4 @@
+import {profileChart} from './profiles.mjs';
 import {recordStages,linkedQuestionId,questionKey,questionValue,collectQuestions,questionCatalogue,questionFromEvidence} from './questions.mjs';
 import {summariseResults,resultsCsv} from './results.mjs';
 import {createClient} from './client.mjs';
@@ -10,6 +11,7 @@ const stored=(k,f)=>{try{return JSON.parse(localStorage.getItem(storageKey(k)))?
 const ui=stored('pd-ui',{});let teacher=teachers.includes(ui.teacher)?ui.teacher:'',groupId=ui.groupId||'',stage=stages.includes(ui.stage)?ui.stage:'global';
 let data,states,overview=[],assigned=true,classFilter='',pendingOnly=false,takeover=false,auth='Checking GitHub…',saveMessage='Saved locally',error='',busy=false;
 let drafts=stored('pd-drafts',[]),saving=Promise.resolve(),inFlight=null;
+let profileGroup='all',profileStudent='';
 let page='assessment',resultReviewer='all',resultCompletion='all',refreshInfo=null,showResolvedQuestions=false,boardOpen=true;
 const remember=()=>localStorage.setItem(storageKey('pd-ui'),JSON.stringify({teacher,groupId,stage,page,resultReviewer,resultCompletion,showResolvedQuestions,boardOpen}));
 const group=()=>data.roster.groups.find(g=>g.id===groupId);
@@ -43,6 +45,7 @@ function resultsDashboard(){
  ${stats.conflicts?'<div class="notice error">Conflicting records are excluded from completed-score averages. Open the affected group to resolve them.</div>':''}
  <div class="results-filters"><label>Reviewer <select id="result-reviewer" ${busy?'disabled':''}><option value="all">All reviewers</option>${teachers.map(t=>`<option ${t===resultReviewer?'selected':''}>${t}</option>`).join('')}</select></label><label>Group assessment <select id="result-completion" ${busy?'disabled':''}>${[['all','All groups'],['complete','Complete'],['partial','In progress'],['not-started','Not started'],['conflict','Has conflicts']].map(([v,t])=>`<option value="${v}" ${v===resultCompletion?'selected':''}>${t}</option>`).join('')}</select></label></div>
  <div class="stats results-stats"><div class="stat"><strong>${stats.groups}</strong><span class="muted">Visible groups · ${stats.students} students</span></div><div class="stat"><strong>${stats.completedStudents}/${stats.students}</strong><span class="muted">Students fully assessed</span></div><div class="stat"><strong>${stats.meanCompleted===null?'—':fmt(stats.meanCompleted)}</strong><span class="muted">Mean final grade · completed students only</span></div><div class="stat"><strong>${percent(stats.coverage)}</strong><span class="muted">Checklist coverage</span></div></div>
+ ${profileChart(data.policy,data.roster,overview,profileGroup,profileStudent)}
  <div class="row"><h2>Group × domain comparison</h2><span class="muted">${stats.low===null?'No groups match':stats.conflicts?'Resolve conflicts for reliable overall ranges':`Provisional mean across visible students: ${fmt(stats.low)}–${fmt(stats.high)} / 10`}</span></div>
  <p class="muted">Each group value is the mean of its students' scores, including individual contributions. A range means assessment is pending; a single value means that domain is complete for all members.</p>
  <div class="matrix-wrap"><table class="matrix"><caption class="sr-only">Group means across the eleven rubric domains</caption><thead><tr><th scope="col">Group</th><th scope="col">Reviewer</th><th scope="col">Status / coverage</th><th scope="col">Overall student mean</th>${data.policy.criteria.map(c=>`<th scope="col">${esc(c.title)}<br><span class="muted">${percent(c.weight)}</span></th>`).join('')}</tr></thead><tbody>${summary.groups.map(g=>`<tr><th scope="row"><button class="small" data-result-group="${g.id}" ${busy?'disabled':''}>${g.id}</button><br><span class="muted">${g.studentCount} students</span></th><td>${g.reviewer}</td><td><span class="badge ${g.complete?'':'amber'}">${statusLabel(g.status)}</span><br><span class="muted">${percent(g.coverage)} · ${g.completedStudents}/${g.studentCount} students complete<br>${g.refreshedAt?'Read '+esc(new Date(g.refreshedAt).toLocaleString()):'Not fetched from GitHub'}</span></td><td>${g.conflicts?'Resolve conflict':`<strong>${scoreRange(g,g.complete)}</strong><br><span class="muted">${g.complete?'Final mean':'Provisional range'}</span>`}</td>${g.domains.map(d=>`<td class="${d.complete?'domain-done':'domain-pending'}">${g.conflicts?'Conflict':`<strong>${scoreRange(d,d.complete)}</strong><br><span class="muted">${d.completed}/${d.total} complete</span>`}</td>`).join('')}</tr>`).join('')||`<tr><td colspan="15">No groups match these filters.</td></tr>`}</tbody></table></div>
@@ -96,6 +99,9 @@ function bind(){
  const on=(s,event,fn)=>{$(s)?.addEventListener(event,async e=>{try{await fn(e);}catch(x){error=x.message;toast(x.message);render();}});};
  on('#nav-results','click',showResults);on('#open-results','click',showResults);
  on('#nav-assessment','click',async()=>{await flush();overview=await api('/api/overview');page='assessment';remember();render();});
+ on('#profile-group','change',e=>{profileGroup=e.target.value;profileStudent='';render();});
+ on('#profile-reset','click',()=>{profileStudent='';render();});
+ document.querySelectorAll('[data-profile-student]').forEach(b=>b.onclick=()=>{profileStudent=profileStudent===b.dataset.profileStudent?'':b.dataset.profileStudent;render();});
  on('#result-reviewer','change',e=>{resultReviewer=e.target.value;remember();render();});
  on('#result-completion','change',e=>{resultCompletion=e.target.value;remember();render();});
  document.querySelectorAll('[data-result-group]').forEach(b=>b.onclick=()=>openGroup(b.dataset.resultGroup).catch(e=>toast(e.message)));

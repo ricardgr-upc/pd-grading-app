@@ -22,7 +22,7 @@ jobs:
       - name: Stage public files only
         run: |
           mkdir _site
-          cp index.html app.mjs client.mjs core.mjs results.mjs questions.mjs policy.json style.css _site/
+          cp index.html app.mjs client.mjs core.mjs results.mjs questions.mjs profiles.mjs policy.json style.css _site/
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
