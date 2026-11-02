@@ -1,4 +1,4 @@
-import {stages,teachers,key,value,mergeThree,calculate,csvCell} from './core.mjs';
+import {stages,teachers,key,value,mergeThree,calculate,csvCell,scoringFormula} from './core.mjs';
 export const repository='ricardgr-upc/pd_grading_ibteam';
 const enc=x=>Array.from(new TextEncoder().encode(x),b=>String.fromCharCode(b)).join('');
 export const encode64=x=>btoa(enc(x));
@@ -118,7 +118,7 @@ export function createClient({fetchImpl=globalThis.fetch.bind(globalThis),storag
    for(const c of st.conflicts){const choice=b.choices?.[c.key];if(!['local','remote'].includes(choice))throw new Error('Choose a version for every conflict');const selected=c[choice];if(selected===null)delete st.doc.fields[c.key];else st.doc.fields[c.key]=selected;st.doc.history.push({id:cryptoImpl.randomUUID(),by:b.teacher,login:identity.login,at,key:c.key,action:'conflict resolution',choice,takeover:!!b.takeover});}
    validate(st.doc);st.conflicts=[];st.dirty=true;save(b.group,b.stage,st);return st;
   });
-  if(url.pathname==='/api/backup')return {schemaVersion:1,policyHash,rosterHash,exportedAt:new Date().toISOString(),docs:bootstrap.roster.groups.flatMap(g=>stages.map(s=>state(g.id,s).doc))};
+  if(url.pathname==='/api/backup')return {schemaVersion:1,policyHash,rosterHash,scoringFormula,exportedAt:new Date().toISOString(),docs:bootstrap.roster.groups.flatMap(g=>stages.map(s=>state(g.id,s).doc))};
   if(url.pathname==='/api/import')return serial(()=>{
    if(!teachers.includes(b.teacher)||b.backup?.schemaVersion!==1||b.backup?.policyHash!==policyHash||b.backup?.rosterHash!==rosterHash||!Array.isArray(b.backup?.docs))throw new Error('Incompatible backup');
    const seen=new Set(),prepared=[];
@@ -126,8 +126,8 @@ export function createClient({fetchImpl=globalThis.fetch.bind(globalThis),storag
    storage.setItem(`${namespace}:pre-import:${Date.now()}`,JSON.stringify(bootstrap.roster.groups.flatMap(g=>stages.map(s=>state(g.id,s)))));for(const [g,s,st]of prepared)save(g,s,st);return {imported:prepared.length};
   });
   if(url.pathname==='/api/export.csv'){
-   const rows=[['student_id','group_id','reviewer','status','checklist_coverage','minimum_secured','possible_maximum','final_grade',...bootstrap.policy.criteria.map(c=>c.title)]];
-   for(const g of bootstrap.roster.groups)for(const s of g.students){const x=calculate(bootstrap.policy,allDocs(g.id),s.id);rows.push([s.id,g.id,g.reviewer,x.complete?'Complete':'Pending',(100*x.coverage).toFixed(1),x.low.toFixed(2),x.high.toFixed(2),x.complete?x.low.toFixed(2):'',...x.criteria.map(c=>c.coverage>=1-1e-9?c.low.toFixed(2):`${c.low.toFixed(2)}–${c.high.toFixed(2)} (pending)`)]);}
+   const rows=[['student_id','group_id','reviewer','status','checklist_coverage','minimum_secured','possible_maximum','final_grade','scoring_formula',...bootstrap.policy.criteria.map(c=>c.title)]];
+   for(const g of bootstrap.roster.groups)for(const s of g.students){const x=calculate(bootstrap.policy,allDocs(g.id),s.id);rows.push([s.id,g.id,g.reviewer,x.complete?'Complete':'Pending',(100*x.coverage).toFixed(1),x.low.toFixed(2),x.high.toFixed(2),x.complete?x.low.toFixed(2):'',scoringFormula,...x.criteria.map(c=>c.coverage>=1-1e-9?c.low.toFixed(2):`${c.low.toFixed(2)}–${c.high.toFixed(2)} (pending)`)]);}
    return '\uFEFF'+rows.map(r=>r.map(csvCell).join(',')).join('\r\n');
   }
   throw new Error('Unknown application operation');

@@ -1,4 +1,4 @@
-import {csvCell} from './core.mjs';
+import {csvCell,scoringFormula} from './core.mjs';
 const mean=xs=>xs.length?xs.reduce((a,x)=>a+x,0)/xs.length:null;
 const done=x=>!x.invalid&&x.coverage>=1-1e-9;
 export function summariseResults(policy,roster,overview,{reviewer='all',completion='all'}={}){
@@ -29,5 +29,6 @@ export function resultsCsv(summary,kind='groups'){
  if(kind==='domains')rows=[['domain','criterion_weight_percent','completed_student_scores','total_students','mean_completed_scores','checklist_coverage_percent','provisional_mean_lower','provisional_mean_upper'],...summary.domains.map(d=>[d.title,100*d.weight,d.completed,d.total,fixed(d.meanCompleted),(d.coverage*100).toFixed(1),fixed(d.low),fixed(d.high)])];
  else if(kind==='students')rows=[['student_id','group_id','reviewer','status','coverage_percent','final_grade','provisional_lower','provisional_upper'],...summary.students.map(s=>[s.id,s.group,s.reviewer,s.conflicts?'Conflict':s.complete?'Complete':'Pending',(s.coverage*100).toFixed(1),s.complete&&!s.conflicts?fixed(s.low):'',s.conflicts?'':fixed(s.low),s.conflicts?'':fixed(s.high)])];
  else rows=[['group_id','reviewer','students','status','coverage_percent','completed_students','final_student_mean','provisional_mean_lower','provisional_mean_upper',...summary.domains.flatMap(d=>[d.title+' — mean/range',d.title+' — completed/total'])],...summary.groups.map(g=>[g.id,g.reviewer,g.studentCount,g.status,(g.coverage*100).toFixed(1),g.completedStudents,g.complete?fixed(g.low):'',g.conflicts?'':fixed(g.low),g.conflicts?'':fixed(g.high),...g.domains.flatMap(d=>[g.conflicts?'Conflict':d.complete?fixed(d.low):`${fixed(d.low)}–${fixed(d.high)} (pending)`,`${d.completed}/${d.total}`])])];
+ rows=rows.map((row,i)=>[...row,i===0?'scoring_formula':scoringFormula]);
  return '\uFEFF'+rows.map(r=>r.map(csvCell).join(',')).join('\r\n');
 }

@@ -16,7 +16,7 @@ Student and group codes are random. The coded roster is fetched from the private
 
 Keep the printed identity key offline. Do not put names or disease assignments into notes. Emails and web/repository links are rejected; use page numbers and neutral evidence codes instead. Names cannot be detected automatically. Coded assessments remain confidential and require private repository access.
 
-Each objective has one global result across evidence views. Only Oral scientific communication, Project Execution and Project Documentation have separate group/individual contributions. The rubric weights total 100%; there are no overall stage weights. Pending objectives prevent final grades. Excellence contributes after all sufficient objectives for that student's criterion are met. No teacher enters numeric marks.
+Each objective has one global result across evidence views. Only Oral scientific communication, Project Execution and Project Documentation have separate group/individual contributions. The rubric weights total 100%; there are no overall stage weights. Pending objectives prevent final grades. Proportional excellence uses `5S + 5SE`, where S and E are the sufficient and excellence attainment proportions with the agreed group/individual weights. Excellence contributes in proportion to sufficient attainment; S = 0.8 and E = 1 gives 8/10. No teacher enters numeric marks.
 
 ## Maintainers
 
@@ -35,3 +35,7 @@ The group-by-domain table shows the mean of students' results within each group.
 Domain averages use only completed student-domain scores, weighted equally per student, with the sample count shown. The overall final-grade mean uses fully assessed students only. Conflicting groups are excluded from completed averages until resolved. Larger groups contribute more students to domain averages; these are student-weighted, not equally weighted group averages.
 
 **Export groups CSV**, **Export domains CSV** and **Export filtered students CSV** download the current filtered results. The original header **Export CSV** still exports all students from this browser's current records. No grading-policy or existing assessment-format migration is needed for the Results dashboard.
+
+## Formula update: 2 November 2026
+
+The current formula is `proportional-excellence-v1`: domain score = `5S + 5SE`. This replaces the previous all-sufficient prerequisite for excellence credit. Criterion and contribution weights remain unchanged. Pending bounds use the same formula with pending responses treated as unmet versus met. Existing checklist answers remain compatible and recalculate after reload; no stored grade records are rewritten. All teachers must reload and reconnect to use the same formula. Re-export old CSV files to obtain updated numeric results; new CSV exports identify their scoring formula.

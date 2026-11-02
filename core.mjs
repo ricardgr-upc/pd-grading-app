@@ -1,3 +1,5 @@
+export const scoringFormula='proportional-excellence-v1';
+export const attainmentScore=(s,e)=>5*s*(1+e);
 export const stages=['global','report','repository','defence'];
 export const stageLabel=s=>s==='global'?'All objectives':s[0].toUpperCase()+s.slice(1);
 export function viewComponents(policy,stage){
@@ -29,14 +31,13 @@ export function calculate(policy,docs,email){
    }
    covered+=comp.weight*(total?answered/total:0);
   }
-  const unlocked=sLow>=1-1e-9;
-  const l=unlocked?5+5*eLow:5*sLow;
-  const h=sHigh>=1-1e-9?5+5*eHigh:5*sHigh;
+  const l=attainmentScore(sLow,eLow);
+  const h=attainmentScore(sHigh,eHigh);
   low+=c.weight*l;high+=c.weight*h;coverage+=c.weight*covered;
-  criteria.push({id:c.id,title:c.title,low:l,high:h,coverage:covered,unlocked,invalid});
+  criteria.push({id:c.id,title:c.title,low:l,high:h,coverage:covered,sufficientAttainment:sLow,excellenceAttainment:eLow,invalid});
  }
  const invalid=criteria.some(c=>c.invalid);
- return {low,high,coverage,complete:!invalid&&coverage>=1-1e-9,invalid,criteria};
+ return {scoringFormula,low,high,coverage,complete:!invalid&&coverage>=1-1e-9,invalid,criteria};
 }
 export function mergeThree(base={},local={},remote={}){
  const merged={},conflicts=[];
