@@ -29,9 +29,9 @@ export function validateQuestions(doc,policy,group){
 }
 export function collectQuestions(doc,policy,group,assessmentDocs={}){
  const catalogue=questionCatalogue(policy,group),ids=new Set(Object.keys(doc?.fields||{}).map(k=>k.split('|')[0]));
- const linked=[...catalogue.keys()].filter(id=>ids.has(id)),extra=[...ids].filter(id=>!catalogue.has(id)).sort((a,b)=>(doc.fields[questionKey(a,'prompt')]?.at||'').localeCompare(doc.fields[questionKey(b,'prompt')]?.at||''));
- return [...linked,...extra].filter(id=>questionValue(doc,id,'active')==='yes').map(id=>{
+ const linked=[...catalogue.values()].filter(q=>value(assessmentDocs[q.recordStage],q.objective,q.subject,'evidence').trim()).map(q=>q.id),extra=[...ids].filter(id=>!catalogue.has(id)&&questionValue(doc,id,'active')==='yes').sort((a,b)=>(doc.fields[questionKey(a,'prompt')]?.at||'').localeCompare(doc.fields[questionKey(b,'prompt')]?.at||''));
+ return [...linked,...extra].map(id=>{
   const context=catalogue.get(id)||{id,kind:'extra',domain:'Additional question',subject:questionValue(doc,id,'subject')||'group'};
-  return {...context,prompt:questionValue(doc,id,'prompt'),answer:questionValue(doc,id,'answer'),resolved:questionValue(doc,id,'state')==='resolved',gradingReference:context.kind==='linked'?value(assessmentDocs[context.recordStage],context.objective,context.subject,'evidence'):'',gradingNote:context.kind==='linked'?value(assessmentDocs[context.recordStage],context.objective,context.subject,'note'):'',attainment:context.kind==='linked'?value(assessmentDocs[context.recordStage],context.objective,context.subject):null};
+  return {...context,prompt:questionValue(doc,id,'prompt'),answer:questionValue(doc,id,'answer'),gradingReference:context.kind==='linked'?value(assessmentDocs[context.recordStage],context.objective,context.subject,'evidence'):'',gradingNote:context.kind==='linked'?value(assessmentDocs[context.recordStage],context.objective,context.subject,'note'):'',attainment:context.kind==='linked'?value(assessmentDocs[context.recordStage],context.objective,context.subject):null};
  });
 }
