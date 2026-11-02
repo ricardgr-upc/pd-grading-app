@@ -1,3 +1,4 @@
+import {recordStages,validateQuestions} from './questions.mjs';
 import {stages,teachers,key,value,mergeThree,calculate,csvCell,scoringFormula} from './core.mjs';
 export const repository='ricardgr-upc/pd_grading_ibteam';
 const enc=x=>Array.from(new TextEncoder().encode(x),b=>String.fromCharCode(b)).join('');
@@ -26,7 +27,7 @@ export function createClient({fetchImpl=globalThis.fetch.bind(globalThis),storag
  const repoApi=()=>`repos/${repository}`;
  async function remoteFile(p){const r=await github(`${repoApi()}/contents/${p}`,{missing:true});return r?{sha:r.sha,data:JSON.parse(decode64(r.content))}:{sha:null,data:null};}
  const getGroup=g=>{const x=bootstrap.roster.groups.find(x=>x.id===g);if(!x)throw new Error('Unknown group');return x;};
- const checkStage=s=>{if(!stages.includes(s))throw new Error('Unknown assessment view');};
+ const checkStage=s=>{if(!recordStages.includes(s))throw new Error('Unknown assessment view');};
  const empty=(g,s)=>({schemaVersion:1,policyVersion:bootstrap.policy.version,policyHash,rosterHash,group:g,stage:s,fields:{},history:[]});
  const recordKey=(g,s)=>{getGroup(g);checkStage(s);return `${namespace}:record:${g}:${s}`;};
  const fresh=(g,s)=>({doc:empty(g,s),base:empty(g,s),sha:null,dirty:false,lastSync:null,conflicts:[],takeovers:[]});
@@ -37,6 +38,8 @@ export function createClient({fetchImpl=globalThis.fetch.bind(globalThis),storag
   if(!doc||doc.schemaVersion!==1||doc.policyVersion!==bootstrap.policy.version||doc.policyHash!==policyHash||doc.rosterHash!==rosterHash)throw new Error('Incompatible assessment, policy or coded roster. Migration is required.');
   const g=getGroup(doc.group);checkStage(doc.stage);
   if(!doc.fields||typeof doc.fields!=='object'||Array.isArray(doc.fields)||!Array.isArray(doc.history))throw new Error('Invalid assessment');
+  if(doc.history.some(x=>!x||typeof x.id!=='string'||!teachers.includes(x.by)||typeof x.at!=='string'))throw new Error('Invalid assessment history');
+  if(doc.stage==='questions')return validateQuestions(doc,bootstrap.policy,g);
   const allowed=new Map();
   for(const c of bootstrap.policy.criteria)for(const comp of c.components.filter(x=>x.stage===doc.stage))for(const tier of ['sufficient','excellence'])for(const o of comp[tier])for(const subject of comp.scope==='group'?['group']:g.students.map(x=>x.id))for(const field of ['status','note','evidence'])allowed.set(key(o.id,subject,field),{o,subject,field});
   for(const [k,e]of Object.entries(doc.fields)){
@@ -64,9 +67,9 @@ export function createClient({fetchImpl=globalThis.fetch.bind(globalThis),storag
  }
  async function refreshAll(onProgress){
   await verifyMetadata();
-  const meta={startedAt:new Date().toISOString(),finishedAt:null,processed:0,total:bootstrap.roster.groups.length*stages.length,error:null};
+  const meta={startedAt:new Date().toISOString(),finishedAt:null,processed:0,total:bootstrap.roster.groups.length*recordStages.length,error:null};
   const metaKey=`${namespace}:refresh-meta`;storage.setItem(metaKey,JSON.stringify(meta));
-  for(const g of bootstrap.roster.groups)for(const s of stages){
+  for(const g of bootstrap.roster.groups)for(const s of recordStages){
    try{
     const st=state(g.id,s),p=`coded-assessments/${bootstrap.roster.datasetId}/${g.id}/${s}.json`,r=await remoteFile(p),rd=r.data||empty(g.id,s);validate(rd);
     if(!r.data&&Object.keys(st.base.fields).length)throw new Error('A previously saved assessment file is missing on GitHub. Local work has been preserved; review the repository before refreshing this group.');
@@ -100,12 +103,12 @@ export function createClient({fetchImpl=globalThis.fetch.bind(globalThis),storag
   const url=new URL(p,'https://local.invalid');
   if(url.pathname==='/api/bootstrap')return structuredClone(bootstrap);
   if(url.pathname==='/api/auth')return structuredClone(identity);
-  if(url.pathname==='/api/group'){const g=url.searchParams.get('id');return Object.fromEntries(stages.map(s=>[s,state(g,s)]));}
+  if(url.pathname==='/api/group'){const g=url.searchParams.get('id');return Object.fromEntries(recordStages.map(s=>[s,state(g,s)]));}
   if(url.pathname==='/api/overview')return bootstrap.roster.groups.map(g=>{
    const records=stages.map(s=>state(g.id,s)),dates=records.map(st=>st.lastFetch||st.lastSync).filter(Boolean);
-   return {group:g.id,students:g.students.map(s=>({id:s.id,...calculate(bootstrap.policy,allDocs(g.id),s.id)})),conflicts:records.reduce((n,st)=>n+st.conflicts.length,0),dirty:records.some(st=>st.dirty),refreshedAt:dates.length===stages.length?dates.sort()[0]:null};
+   return {group:g.id,students:g.students.map(s=>({id:s.id,...calculate(bootstrap.policy,allDocs(g.id),s.id)})),conflicts:records.reduce((n,st)=>n+st.conflicts.length,0),dirty:records.some(st=>st.dirty)||state(g.id,'questions').dirty,questionConflicts:state(g.id,'questions').conflicts.length,refreshedAt:dates.length===stages.length?dates.sort()[0]:null};
   });
-  if(url.pathname==='/api/refresh-status'){const raw=storage.getItem(`${namespace}:refresh-meta`);return raw?JSON.parse(raw):null;}
+  if(url.pathname==='/api/refresh-status'){const raw=storage.getItem(`${namespace}:refresh-meta`);if(!raw)return null;const meta=JSON.parse(raw),total=bootstrap.roster.groups.length*recordStages.length;return meta.total===total?meta:{...meta,total,finishedAt:null,error:'Defence questions were added after this refresh. Refresh all groups again.'};}
   if(url.pathname==='/api/refresh-all')return serial(()=>refreshAll(b?.onProgress));
   if(url.pathname==='/api/response')return serial(()=>{
    assertOwner(b.group,b.teacher,b.takeover);const st=state(b.group,b.stage);if(st.conflicts.length)throw new Error('Resolve conflicts before editing this record');const at=new Date().toISOString();
@@ -118,12 +121,12 @@ export function createClient({fetchImpl=globalThis.fetch.bind(globalThis),storag
    for(const c of st.conflicts){const choice=b.choices?.[c.key];if(!['local','remote'].includes(choice))throw new Error('Choose a version for every conflict');const selected=c[choice];if(selected===null)delete st.doc.fields[c.key];else st.doc.fields[c.key]=selected;st.doc.history.push({id:cryptoImpl.randomUUID(),by:b.teacher,login:identity.login,at,key:c.key,action:'conflict resolution',choice,takeover:!!b.takeover});}
    validate(st.doc);st.conflicts=[];st.dirty=true;save(b.group,b.stage,st);return st;
   });
-  if(url.pathname==='/api/backup')return {schemaVersion:1,policyHash,rosterHash,scoringFormula,exportedAt:new Date().toISOString(),docs:bootstrap.roster.groups.flatMap(g=>stages.map(s=>state(g.id,s).doc))};
+  if(url.pathname==='/api/backup')return {schemaVersion:1,policyHash,rosterHash,scoringFormula,exportedAt:new Date().toISOString(),docs:bootstrap.roster.groups.flatMap(g=>recordStages.map(s=>state(g.id,s).doc))};
   if(url.pathname==='/api/import')return serial(()=>{
    if(!teachers.includes(b.teacher)||b.backup?.schemaVersion!==1||b.backup?.policyHash!==policyHash||b.backup?.rosterHash!==rosterHash||!Array.isArray(b.backup?.docs))throw new Error('Incompatible backup');
    const seen=new Set(),prepared=[];
    for(const doc of b.backup.docs){validate(doc);const id=doc.group+'/'+doc.stage;if(seen.has(id))throw new Error('Duplicate assessment record');seen.add(id);const st=state(doc.group,doc.stage);if(st.conflicts.length)throw new Error('Resolve existing conflicts before importing');for(const [k,e]of Object.entries(doc.fields))if(st.doc.fields[k]&&st.doc.fields[k].value!==e.value)throw new Error('Backup conflicts with local work. Review it in a separate browser profile.');st.doc.fields={...st.doc.fields,...doc.fields};st.doc.history=history(st.doc.history,doc.history);validate(st.doc);st.dirty=true;prepared.push([doc.group,doc.stage,st]);}
-   storage.setItem(`${namespace}:pre-import:${Date.now()}`,JSON.stringify(bootstrap.roster.groups.flatMap(g=>stages.map(s=>state(g.id,s)))));for(const [g,s,st]of prepared)save(g,s,st);return {imported:prepared.length};
+   storage.setItem(`${namespace}:pre-import:${Date.now()}`,JSON.stringify(bootstrap.roster.groups.flatMap(g=>recordStages.map(s=>state(g.id,s)))));for(const [g,s,st]of prepared)save(g,s,st);return {imported:prepared.length};
   });
   if(url.pathname==='/api/export.csv'){
    const rows=[['student_id','group_id','reviewer','status','checklist_coverage','minimum_secured','possible_maximum','final_grade','scoring_formula',...bootstrap.policy.criteria.map(c=>c.title)]];

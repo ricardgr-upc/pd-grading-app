@@ -22,7 +22,7 @@ Each objective has one global result across evidence views. Only Oral scientific
 
 This is a static application: no Node.js, GitHub CLI or server is needed on teachers' computers. GitHub Pages hosts only the public interface. GitHub's API enforces access to the private records. Repository-scoped tokens provide authentication; this is not an OAuth sign-in flow.
 
-The deployment workflow uploads only index.html, app.mjs, client.mjs, core.mjs, results.mjs, policy.json and style.css. Do not add student data, credentials, private roster files or the printed dictionary here. Source changes affect a page into which teachers enter credentials; restrict write access to trusted maintainers.
+The deployment workflow uploads only index.html, app.mjs, client.mjs, core.mjs, results.mjs, questions.mjs, policy.json and style.css. Do not add student data, credentials, private roster files or the printed dictionary here. Source changes affect a page into which teachers enter credentials; restrict write access to trusted maintainers.
 
 The private dataset is versioned and fingerprinted. Policy or roster mismatches block imports/sync instead of silently migrating grades. Existing local-server assessments are a separate legacy dataset and are not automatically moved into the coded dataset.
 
@@ -39,3 +39,13 @@ Domain averages use only completed student-domain scores, weighted equally per s
 ## Formula update: 2 November 2026
 
 The current formula is `proportional-excellence-v1`: domain score = `5S + 5SE`. This replaces the previous all-sufficient prerequisite for excellence credit. Criterion and contribution weights remain unchanged. Pending bounds use the same formula with pending responses treated as unmet versus met. Existing checklist answers remain compatible and recalculate after reload; no stored grade records are rewritten. All teachers must reload and reconnect to use the same formula. Re-export old CSV files to obtain updated numeric results; new CSV exports identify their scoring formula.
+
+## Defence questions
+
+Each assessment item has a **Question for the defence** checkbox. Checking it creates one linked question in the group's shared **Defence questions** panel. Its initial text is copied from the existing grading note, if present; edit the question separately without changing the original explanation. Unchecking the marker hides the linked question while retaining its text and answer for later use. Rechecking reopens it.
+
+The panel is the same in All objectives, Report, Repository and Defence, independent of the Pending-only filter. It shows the rubric domain and group/student target. **Add question** creates a standalone question, addressed to the whole group or an individual code. Record an answer under **Answer / defence evidence** and mark it **Resolved** when addressed. Resolved questions are retained; enable **Show resolved questions** to review or reopen them.
+
+Resolving a question never awards credit. For a linked question, explicitly use its **Linked attainment** controls to change Met / Not met / Pending (or justified conditional N/A). **Open linked item** opens the original objective. Standalone questions have no grade link.
+
+Questions autosave locally and are included in **Sync group**, **Refresh all groups** and JSON backups. They live in a separate private `questions.json` file per group alongside the existing grade records, so earlier grade files and policy fingerprints are unchanged. Question conflicts are resolved in the panel and do not invalidate grade calculations. A grading-only backup can still be imported without removing current questions. All teachers must reload the updated app to view questions and use new backups containing question records. Keep question text and answers free of identifying details.
