@@ -22,7 +22,7 @@ Each objective has one global result across evidence views. Only Oral scientific
 
 This is a static application: no Node.js, GitHub CLI or server is needed on teachers' computers. GitHub Pages hosts only the public interface. GitHub's API enforces access to the private records. Repository-scoped tokens provide authentication; this is not an OAuth sign-in flow.
 
-The deployment workflow uploads only index.html, app.mjs, client.mjs, core.mjs, results.mjs, questions.mjs, profiles.mjs, policy.json and style.css. Do not add student data, credentials, private roster files or the printed dictionary here. Source changes affect a page into which teachers enter credentials; restrict write access to trusted maintainers.
+The deployment workflow uploads only index.html, app.mjs, client.mjs, core.mjs, results.mjs, questions.mjs, profiles.mjs, storage.mjs, drafts.mjs, policy.json and style.css. Do not add student data, credentials, private roster files or the printed dictionary here. Source changes affect a page into which teachers enter credentials; restrict write access to trusted maintainers.
 
 The private dataset is versioned and fingerprinted. Policy or roster mismatches block imports/sync instead of silently migrating grades. Existing local-server assessments are a separate legacy dataset and are not automatically moved into the coded dataset.
 
@@ -49,3 +49,13 @@ Use **Open linked item** to edit those source fields. **Add question** still cre
 ## Student rubric profiles
 
 Results includes a group selector (including All groups) and one profile per student across the eleven dimensions. It uses each dimension's score out of 10 before final weighting. Solid segments join completed domains; dashed segments trace provisional lower bounds. Range bars show possible upper bounds for a selected student or small group. Click a student code to highlight its profile and view exact scores, ranges and coverage; click again or Show all lines to reset. Chart selection is independent of the other dashboard filters. Conflicted groups are excluded and counted. Refresh all groups first to retrieve colleagues' work. The chart reads existing records and never changes grades.
+
+## Local database upgrade and text audit
+
+Assessment records, working copies, merge baselines, conflicts, UI preferences and recovery drafts now use IndexedDB. No installation or purchase is required. The GitHub record schema, scoring formula and repository permissions are unchanged.
+
+Keep existing downloaded backups. Use one assessment tab per browser during the upgrade: close extra tabs running the old application, reload the remaining tab and reconnect with the same GitHub account. Only that account/dataset's old localStorage records are copied. The database transaction must complete and every copied string must compare exactly before its old localStorage copy is removed. If migration fails or old and new copies differ, the application stops without overwriting the different versions. Do not clear website data to fix this. Existing unsynced work, original history and both conflict alternatives are retained. Take a fresh backup after upgrading, then refresh all groups and sync your own groups. Old backups still import; do not import one unnecessarily over an already migrated workspace.
+
+While typing, the latest text replaces a small recovery draft in IndexedDB. Leaving the field commits one audit edit with its original and final values. Repeated unchanged content does not create audit entries. Attainment selectors commit immediately; navigation, sync and backup flush active text first. Recovery drafts reload after reconnection. Existing keystroke history is preserved at this stage; separating the historical archive is a later change.
+
+Backup can still download an emergency file when local saving fails, including queued changes and in-memory text edits. New backups also preserve both versions and baselines of unresolved conflicts. Restore emergency backups with the updated application; importing a backup validates every recovered record and refuses to overwrite different local answers. The pre-import snapshot and imported records are written in one IndexedDB transaction. Browser data is still local to that device/profile; retain downloaded backups and use Sync group to share work through GitHub. Tokens remain in memory only.

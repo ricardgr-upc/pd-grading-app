@@ -1,21 +1,25 @@
+import {createAssessmentStorage} from './storage.mjs';
+import {createTextDrafts} from './drafts.mjs';
 import {profileChart} from './profiles.mjs';
 import {recordStages,linkedQuestionId,questionKey,questionValue,collectQuestions,questionCatalogue,questionFromEvidence} from './questions.mjs';
 import {summariseResults,resultsCsv} from './results.mjs';
 import {createClient} from './client.mjs';
-const client=createClient();
+const localStore=createAssessmentStorage();
+const client=createClient({storage:localStore});
 const storageKey=k=>`${client.scopeKey}:${k}`;
 import {stages,stageLabel,viewComponents,teachers,key,value,calculate,subjectFor} from './core.mjs';
 const $=s=>document.querySelector(s),app=$('#app');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const stored=(k,f)=>{try{return JSON.parse(localStorage.getItem(storageKey(k)))??f;}catch{return f;}};
+const stored=(k,f)=>{try{return JSON.parse(localStore.getItem(storageKey(k)))??f;}catch{return f;}};
 const ui=stored('pd-ui',{});let teacher=teachers.includes(ui.teacher)?ui.teacher:'',groupId=ui.groupId||'',stage=stages.includes(ui.stage)?ui.stage:'global';
 let data,states,overview=[],assigned=true,classFilter='',pendingOnly=false,takeover=false,auth='Checking GitHub…',saveMessage='Saved locally',error='',busy=false;
 let drafts=stored('pd-drafts',[]),saving=Promise.resolve(),inFlight=null;
+let textEdits=makeTextEdits([]);
 let profileGroup='all',profileStudent='';
 let page='assessment',resultReviewer='all',resultCompletion='all',refreshInfo=null,showResolvedQuestions=false,boardOpen=true;
-const remember=()=>localStorage.setItem(storageKey('pd-ui'),JSON.stringify({teacher,groupId,stage,page,resultReviewer,resultCompletion,showResolvedQuestions,boardOpen}));
+const remember=()=>localStore.setItem(storageKey('pd-ui'),JSON.stringify({teacher,groupId,stage,page,resultReviewer,resultCompletion,showResolvedQuestions,boardOpen})).catch(reportSaveError);
 const group=()=>data.roster.groups.find(g=>g.id===groupId);
-const docs=()=>Object.fromEntries(stages.map(s=>[s,states?.[s]?.doc]));
+const docs=()=>{const out=Object.fromEntries(stages.map(s=>[s,states?.[s]?.doc]));for(const b of textEdits.snapshot().filter(b=>b.group===groupId&&b.stage!=='questions')){if(!out[b.stage])continue;out[b.stage]={...out[b.stage],fields:{...out[b.stage].fields,...Object.fromEntries(Object.entries(b.changes).map(([k,value])=>[k,{value}]))}};}return out;};
 const fmt=n=>n.toFixed(2),percent=n=>`${Math.round(n*100)}%`;
 const toast=m=>{const t=$('#toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),4500);};
 const api=(p,body)=>client.api(p,body);
@@ -81,20 +85,20 @@ function objective(o,subject,disabled,recordStage){const doc=states[recordStage]
 }
 function conflictPanel(st,recordStage=stage){return `<div class="notice error"><h3>Choose which version to keep</h3><p>Both teachers changed these fields. Both versions are retained until you choose.</p>${st.conflicts.map((c,i)=>`<div class="conflict"><strong>${esc(c.key)}</strong>${['local','remote'].map(v=>`<label><input type="radio" name="conflict-${recordStage}-${i}" value="${v}"> ${v==='local'?'This computer':'GitHub'}: ${esc(c[v]?.value??'(deleted)')} · ${esc(c[v]?.by||'')}</label>`).join('')}</div>`).join('')}<button data-resolve-stage="${recordStage}">Save conflict choices</button></div>`;}
 async function openGroup(id){await flush();page='assessment';groupId=id;takeover=false;error='';states=await api('/api/group?id='+encodeURIComponent(id));remember();render();}
-function persistDrafts(){localStorage.setItem(storageKey('pd-drafts'),JSON.stringify(drafts));}
-function enqueue(changes,recordStage=stage){
- const b={id:crypto.randomUUID(),group:groupId,stage:recordStage,teacher,takeover,changes};
+async function persistDrafts(){await localStore.setItem(storageKey('pd-drafts'),JSON.stringify(drafts));}
+async function enqueue(changes,recordStage=stage,context={group:groupId,teacher,takeover}){
+ const b={id:crypto.randomUUID(),group:context.group,stage:recordStage,teacher:context.teacher,takeover:context.takeover,changes};
  const pending=drafts.find(d=>d.id!==inFlight&&d.group===b.group&&d.stage===b.stage&&d.teacher===b.teacher&&d.takeover===b.takeover);
  if(pending)Object.assign(pending.changes,changes);else drafts.push(b);
- persistDrafts();saveMessage='Saving locally…';$('#save-state').textContent=saveMessage;
+ await persistDrafts();saveMessage='Saving locally…';$('#save-state').textContent=saveMessage;
  return drain();
 }
 function drain(){saving=saving.catch(()=>{}).then(async()=>{
- while(drafts.length){const b=drafts[0];inFlight=b.id;try{const result=await api('/api/response',b);if(groupId===b.group&&states)states[b.stage]=result;drafts.splice(drafts.findIndex(d=>d.id===b.id),1);inFlight=null;persistDrafts();saveMessage='Saved locally · sync to share';error='';}catch(e){inFlight=null;saveMessage='Local save needs attention';error=e.message;render();throw e;}}
+ while(drafts.length){const b=drafts[0];inFlight=b.id;try{const result=await api('/api/response',b);if(groupId===b.group&&states)states[b.stage]=result;drafts.splice(drafts.findIndex(d=>d.id===b.id),1);inFlight=null;await persistDrafts();saveMessage='Saved locally · sync to share';error='';}catch(e){inFlight=null;saveMessage='Local save needs attention';error=e.message;render();throw e;}}
  if($('#save-state'))$('#save-state').textContent=saveMessage;
  if($('#results')){const open=[...$('#results').querySelectorAll('details[open]')].map(x=>x.dataset.open);$('#results').innerHTML=resultRows();for(const el of $('#results').querySelectorAll('details'))if(open.includes(el.dataset.open))el.open=true;}
  });return saving;}
-async function flush(){document.activeElement?.blur();await saving;if(drafts.length)throw new Error('Save pending local changes before continuing');}
+async function flush(){document.activeElement?.blur();await textEdits.flush();await saving;if(drafts.length)throw new Error('Save pending local changes before continuing');}
 function bind(){
  const on=(s,event,fn)=>{$(s)?.addEventListener(event,async e=>{try{await fn(e);}catch(x){error=x.message;toast(x.message);render();}});};
  on('#nav-results','click',showResults);on('#open-results','click',showResults);
@@ -127,37 +131,36 @@ function bind(){
  bindAttainment();
  document.querySelectorAll('[data-field]').forEach(el=>{
 
- el.addEventListener('input',()=>{enqueue({[key(el.dataset.objective,el.dataset.subject,el.dataset.field)]:el.value},el.dataset.recordStage).then(refreshQuestionBoard).catch(()=>{});});
+ el.addEventListener('input',()=>stageText({[key(el.dataset.objective,el.dataset.subject,el.dataset.field)]:el.value},el.dataset.recordStage));
+ el.addEventListener('change',()=>textEdits.flush().catch(reportSaveError));
  });
- on('#retry-save','click',async()=>{await drain();render();});
+ on('#retry-save','click',async()=>{await textEdits.flush();await drain();render();});
  on('#sync','click',async()=>{await flush();busy=true;error='';render();try{for(const s of recordStages)states[s]=await api('/api/sync',{group:groupId,stage:s,teacher,takeover});const count=recordStages.reduce((n,s)=>n+states[s].conflicts.length,0);toast(count?'Conflicting changes need your choice.':'All group assessments synchronised with GitHub.');}finally{busy=false;render();}});
- on('#backup','click',async()=>{await flush();download('project-disease-coded-backup.json',JSON.stringify(await api('/api/backup'),null,2),'application/json');});on('#export','click',async()=>{await flush();download('project-disease-coded-grades.csv',await api('/api/export.csv'),'text/csv;charset=utf-8');});
+ on('#backup','click',downloadBackup);on('#export','click',async()=>{await flush();download('project-disease-coded-grades.csv',await api('/api/export.csv'),'text/csv;charset=utf-8');});
  on('#logout','click',async()=>{await flush();client.disconnect();data=null;states=null;overview=[];teacher='';groupId='';drafts=[];renderLogin();});
  on('#import','click',()=>$('#import-file').click());on('#import-file','change',async e=>{const f=e.target.files[0];if(!f)return;await flush();const backup=JSON.parse(await f.text());const x=await api('/api/import',{teacher,backup});overview=await api('/api/overview');render();toast(`Imported ${x.imported} assessment records. Sync to share.`);});
 }
 function download(name,content,type){const url=URL.createObjectURL(new Blob([content],{type}));const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 function renderLogin(message=''){
  app.innerHTML=`<header><div class="brand"><div class="mark">✳</div><div><strong>Project Disease</strong><div class="eyebrow">Assessment studio · IB team</div></div></div><span class="badge">Private assessment data</span></header><div class="welcome"><div class="eyebrow">GitHub-connected assessment</div><h1>Connect your workspace.</h1><p class="muted">The interface is public. Your coded assessment data stays in the private teaching-team repository. Use the printed identity key to identify groups and students.</p><label for="token"><strong>Repository-scoped GitHub token</strong></label><input id="token" type="password" autocomplete="off" spellcheck="false" aria-describedby="token-help"><p id="token-help" class="muted">Select only <strong>pd_grading_ibteam</strong> and grant Contents: Read and write. The token is held only in this tab's memory and sent only to api.github.com. Reconnect after reloading.</p>${message?`<div class="notice error">${esc(message)}</div>`:''}<button id="connect" class="primary">Connect to GitHub</button><p class="footer">Scoring: proportional excellence (5S + 5SE). No names or emails are loaded. Keep the printed dictionary offline. Notes and exports must use neutral codes.</p></div>`;
- $('#connect').onclick=async()=>{const input=$('#token');const secret=input.value;input.value='';$('#connect').disabled=true;$('#connect').textContent='Connecting…';try{const user=await client.connect(secret);auth=`GitHub: ${user.login}`;const saved=stored('pd-ui',{});teacher=teachers.includes(saved.teacher)?saved.teacher:'';groupId=saved.groupId||'';stage=stages.includes(saved.stage)?saved.stage:'global';page=saved.page==='results'?'results':'assessment';resultReviewer=['all',...teachers].includes(saved.resultReviewer)?saved.resultReviewer:'all';resultCompletion=['all','complete','partial','not-started','conflict'].includes(saved.resultCompletion)?saved.resultCompletion:'all';refreshInfo=await api('/api/refresh-status');showResolvedQuestions=!!saved.showResolvedQuestions;boardOpen=saved.boardOpen!==false;drafts=stored('pd-drafts',[]);saving=Promise.resolve();inFlight=null;error='';data=await api('/api/bootstrap');overview=await api('/api/overview');if(!data.roster.groups.some(g=>g.id===groupId))groupId='';if(groupId)states=await api('/api/group?id='+encodeURIComponent(groupId));render();if(drafts.length)drain().then(render).catch(()=>{});}catch(e){client.disconnect();renderLogin(e.message);}};
+ $('#connect').onclick=async()=>{const input=$('#token');const secret=input.value;input.value='';$('#connect').disabled=true;$('#connect').textContent='Connecting…';try{const user=await client.connect(secret);auth=`GitHub: ${user.login}`;saveMessage=user.storageMigrated?'Local database upgraded · existing work verified':'Local database ready';const saved=stored('pd-ui',{});teacher=teachers.includes(saved.teacher)?saved.teacher:'';groupId=saved.groupId||'';stage=stages.includes(saved.stage)?saved.stage:'global';page=saved.page==='results'?'results':'assessment';resultReviewer=['all',...teachers].includes(saved.resultReviewer)?saved.resultReviewer:'all';resultCompletion=['all','complete','partial','not-started','conflict'].includes(saved.resultCompletion)?saved.resultCompletion:'all';refreshInfo=await api('/api/refresh-status');showResolvedQuestions=!!saved.showResolvedQuestions;boardOpen=saved.boardOpen!==false;drafts=stored('pd-drafts',[]);textEdits=makeTextEdits(stored('pd-text-drafts',[]));saving=Promise.resolve();inFlight=null;error='';data=await api('/api/bootstrap');overview=await api('/api/overview');if(!data.roster.groups.some(g=>g.id===groupId))groupId='';if(groupId)states=await api('/api/group?id='+encodeURIComponent(groupId));render();if(drafts.length||textEdits.pending)flush().then(render).catch(reportSaveError);}catch(e){client.disconnect();renderLogin(e.message);}};
  $('#token').addEventListener('keydown',e=>{if(e.key==='Enter')$('#connect').click();});
 }
 renderLogin();
 
-window.addEventListener('beforeunload',e=>{if(drafts.length){e.preventDefault();e.returnValue='';}});
+window.addEventListener('beforeunload',e=>{if(drafts.length||textEdits.pending){e.preventDefault();e.returnValue='';}});
 
 function bindQuestionBoard(){
  $('#add-question')?.addEventListener('click',async()=>{await flush();const id='extra:'+crypto.randomUUID();await enqueue({[questionKey(id,'active')]:'yes',[questionKey(id,'prompt')]:'',[questionKey(id,'state')]:'open',[questionKey(id,'subject')]:'group'},'questions');boardOpen=true;render();document.querySelector(`textarea[data-question="${id}"][data-question-field="prompt"]`)?.focus();});
- document.querySelectorAll('[data-question-field]').forEach(el=>el.addEventListener(el.tagName==='SELECT'?'change':'input',()=>{
-  if(el.dataset.questionField==='prompt'){const badge=el.closest('.question-card')?.querySelector('.question-needs-text');if(badge)badge.hidden=!!el.value.trim();}
-  enqueue({[questionKey(el.dataset.question,el.dataset.questionField)]:el.value},'questions').then(()=>{if(el.tagName==='SELECT')render();}).catch(()=>{});
- }));
-
-
+ document.querySelectorAll('[data-question-field]').forEach(el=>{
+  if(el.tagName==='SELECT')el.addEventListener('change',async()=>{try{await flush();await enqueue({[questionKey(el.dataset.question,el.dataset.questionField)]:el.value},'questions');render();}catch(e){reportSaveError(e);}});
+  else{el.addEventListener('input',()=>stageText({[questionKey(el.dataset.question,el.dataset.questionField)]:el.value},'questions'));el.addEventListener('change',()=>textEdits.flush().catch(reportSaveError));}
+ });
  document.querySelectorAll('[data-jump-question]').forEach(el=>el.addEventListener('click',async()=>{try{await flush();const q=questionCatalogue(data.policy,group()).get(el.dataset.jumpQuestion);if(!q)return;stage=q.recordStage;pendingOnly=false;remember();render();const target=document.getElementById(`objective-${q.objective}-${q.subject}`);if(target){target.closest('details.criterion').open=true;target.scrollIntoView({behavior:'smooth',block:'center'});}}catch(e){toast(e.message);}}));
 }
 function bindAttainment(root=document){
  root.querySelectorAll('button[data-objective]').forEach(b=>b.onclick=async()=>{try{
- const {objective:id,subject,value:v,recordStage}=b.dataset;const changes={};
+ await flush();const {objective:id,subject,value:v,recordStage}=b.dataset;const changes={};
  if(v==='na'&&!value(states[recordStage].doc,id,subject,'note').trim()){const reason=prompt('Why is this objective not applicable?');if(!reason?.trim())return;changes[key(id,subject,'note')]=reason.trim();}
  changes[key(id,subject,'status')]=v;await enqueue(changes,recordStage);render();
  }catch(e){toast(e.message);}});
@@ -167,3 +170,8 @@ function refreshQuestionBoard(){const board=$('#defence-board');if(!board||!stat
 function bindConflicts(root=document){
  root.querySelectorAll('[data-resolve-stage]').forEach(el=>el.addEventListener('click',async()=>{try{await flush();const recordStage=el.dataset.resolveStage,choices={};states[recordStage].conflicts.forEach((c,i)=>{choices[c.key]=$(`input[name="conflict-${recordStage}-${i}"]:checked`)?.value;});states[recordStage]=await api('/api/resolve',{group:groupId,stage:recordStage,teacher,takeover,choices});render();toast('Choices saved locally. Sync again to share.');}catch(e){error=e.message;toast(e.message);render();}}));
 }
+
+function reportSaveError(e){saveMessage='Local save needs attention';error=e.message;const status=$('#save-state');if(status)status.textContent=saveMessage;toast(e.message);}
+function makeTextEdits(initial){return createTextDrafts({initial,persist:edits=>localStore.setItem(storageKey('pd-text-drafts'),JSON.stringify(edits)),commit:batch=>enqueue(batch.changes,batch.stage,{...batch})});}
+function stageText(changes,recordStage){const pending=textEdits.stage({group:groupId,stage:recordStage,teacher,takeover,changes});if(recordStage!=='questions')refreshQuestionBoard();pending.then(()=>{saveMessage='Recovery draft saved · leave field to commit';if($('#save-state'))$('#save-state').textContent=saveMessage;},reportSaveError);}
+async function downloadBackup(){let failure;try{await flush();}catch(e){failure=e;}const backup=await api('/api/backup');backup.recovery={...backup.recovery,queuedChanges:structuredClone(drafts),textEdits:textEdits.snapshot()};download(failure?'project-disease-emergency-backup.json':'project-disease-coded-backup.json',JSON.stringify(backup,null,2),'application/json');if(failure)toast('Emergency backup includes pending edits. Keep this tab open until recovery is complete.');}

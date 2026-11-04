@@ -5,6 +5,16 @@ const enc=x=>Array.from(new TextEncoder().encode(x),b=>String.fromCharCode(b)).j
 export const encode64=x=>btoa(enc(x));
 export const decode64=x=>new TextDecoder().decode(Uint8Array.from(atob(x.replace(/\s/g,'')),c=>c.charCodeAt(0)));
 export async function fingerprint(x,cryptoImpl=globalThis.crypto){return Array.from(new Uint8Array(await cryptoImpl.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify(x)))),b=>b.toString(16).padStart(2,'0')).join('');}
+export function applyBackupRecovery(backup,cryptoImpl=globalThis.crypto){
+ const copy=structuredClone(backup),recovery=copy.recovery;if(!recovery)return copy;
+ if(!Array.isArray(recovery.queuedChanges)||!Array.isArray(recovery.textEdits))throw new Error('Invalid backup recovery data');
+ for(const b of [...recovery.queuedChanges,...recovery.textEdits]){
+  if(!b||!teachers.includes(b.teacher)||!recordStages.includes(b.stage)||!b.changes||typeof b.changes!=='object'||Array.isArray(b.changes))throw new Error('Invalid pending edit in backup');
+  const doc=copy.docs?.find(d=>d.group===b.group&&d.stage===b.stage);if(!doc)throw new Error('Pending edit has no matching backup record');
+  for(const [k,v]of Object.entries(b.changes)){if(typeof v!=='string')throw new Error('Invalid pending edit value');const old=doc.fields[k]?.value??null;if(old===v)continue;const at=new Date().toISOString();doc.fields[k]={value:v,by:b.teacher,at};doc.history.push({id:cryptoImpl.randomUUID(),key:k,old,value:v,by:b.teacher,at,action:'Recovered pending edit',takeover:!!b.takeover});}
+ }
+ return copy;
+}
 export function createClient({fetchImpl=globalThis.fetch.bind(globalThis),storage=globalThis.localStorage,cryptoImpl=globalThis.crypto}={}){
  let token='',identity=null,bootstrap=null,policyHash='',rosterHash='',namespace='locked',queue=Promise.resolve();
  const serial=fn=>{const task=queue.then(fn);queue=task.catch(()=>{});return task;};
@@ -40,7 +50,7 @@ export function createClient({fetchImpl=globalThis.fetch.bind(globalThis),storag
  const recordKey=(g,s)=>{getGroup(g);checkStage(s);return `${namespace}:record:${g}:${s}`;};
  const fresh=(g,s)=>({doc:empty(g,s),base:empty(g,s),sha:null,dirty:false,lastSync:null,conflicts:[],takeovers:[]});
  function state(g,s){const text=storage.getItem(recordKey(g,s));if(!text)return fresh(g,s);const st=JSON.parse(text);validate(st.doc);validate(st.base);if(!Array.isArray(st.conflicts))throw new Error('Invalid local conflict record. Restore a backup.');return st;}
- function save(g,s,st){storage.setItem(recordKey(g,s),JSON.stringify(st));}
+ async function save(g,s,st){await storage.setItem(recordKey(g,s),JSON.stringify(st));}
  function assertOwner(g,teacher,takeover){if(!teachers.includes(teacher))throw new Error('Select a teacher');if(getGroup(g).reviewer!==teacher&&!takeover)throw new Error('Explicit takeover is required for another teacher’s group');}
  function validate(doc){
   if(!doc||doc.schemaVersion!==1||doc.policyVersion!==bootstrap.policy.version||doc.policyHash!==policyHash||doc.rosterHash!==rosterHash)throw new Error('Incompatible assessment, policy or coded roster. Migration is required.');
@@ -67,16 +77,16 @@ export function createClient({fetchImpl=globalThis.fetch.bind(globalThis),storag
  async function verifyMetadata(){for(const [p,expected]of [['data/policy.json',policyHash],['data/pseudonymous-roster.json',rosterHash]]){const r=await remoteFile(p);if(!r.data||await fingerprint(r.data,cryptoImpl)!==expected)throw new Error('The grading policy or coded roster changed. Back up your work and reload before syncing.');}}
  async function sync(b){
   assertOwner(b.group,b.teacher,b.takeover);await verifyMetadata();const st=state(b.group,b.stage);if(st.conflicts.length)return st;const p=`coded-assessments/${bootstrap.roster.datasetId}/${b.group}/${b.stage}.json`,r=await remoteFile(p),rd=r.data||empty(b.group,b.stage);validate(rd);
-  const m=mergeThree(st.base.fields,st.doc.fields,rd.fields);st.doc={...st.doc,fields:m.merged,history:history(st.doc.history,rd.history)};st.base=rd;st.sha=r.sha;st.conflicts=m.conflicts;st.dirty=JSON.stringify(st.doc)!==JSON.stringify(rd);save(b.group,b.stage,st);
+  const m=mergeThree(st.base.fields,st.doc.fields,rd.fields);st.doc={...st.doc,fields:m.merged,history:history(st.doc.history,rd.history)};st.base=rd;st.sha=r.sha;st.conflicts=m.conflicts;st.dirty=JSON.stringify(st.doc)!==JSON.stringify(rd);await save(b.group,b.stage,st);
   if(m.conflicts.length)return st;
   validate(st.doc);
   if(st.dirty){const input={message:`Assessment: ${b.group} / ${b.stage} — ${b.teacher}`,content:encode64(JSON.stringify(st.doc,null,2)+'\n'),...(r.sha?{sha:r.sha}:{})};const result=await github(`${repoApi()}/contents/${p}`,{method:'PUT',body:JSON.stringify(input)});st.sha=result.content.sha;st.base=structuredClone(st.doc);st.dirty=false;}
-  st.lastSync=new Date().toISOString();st.lastFetch=st.lastSync;save(b.group,b.stage,st);return st;
+  st.lastSync=new Date().toISOString();st.lastFetch=st.lastSync;await save(b.group,b.stage,st);return st;
  }
  async function refreshAll(onProgress){
   await verifyMetadata();
   const meta={startedAt:new Date().toISOString(),finishedAt:null,processed:0,total:bootstrap.roster.groups.length*recordStages.length,error:null};
-  const metaKey=`${namespace}:refresh-meta`;storage.setItem(metaKey,JSON.stringify(meta));
+  const metaKey=`${namespace}:refresh-meta`;await storage.setItem(metaKey,JSON.stringify(meta));
   for(const g of bootstrap.roster.groups)for(const s of recordStages){
    try{
     const st=state(g.id,s),p=`coded-assessments/${bootstrap.roster.datasetId}/${g.id}/${s}.json`,r=await remoteFile(p),rd=r.data||empty(g.id,s);validate(rd);
@@ -86,12 +96,12 @@ export function createClient({fetchImpl=globalThis.fetch.bind(globalThis),storag
      const m=mergeThree(st.base.fields,st.doc.fields,rd.fields);
      const doc={...st.doc,fields:m.merged,history:history(st.doc.history,rd.history)};
      if(!m.conflicts.length)validate(doc);
-     st.doc=doc;st.base=rd;st.sha=r.sha;st.conflicts=m.conflicts;st.dirty=JSON.stringify(doc)!==JSON.stringify(rd);st.lastFetch=new Date().toISOString();save(g.id,s,st);
+     st.doc=doc;st.base=rd;st.sha=r.sha;st.conflicts=m.conflicts;st.dirty=JSON.stringify(doc)!==JSON.stringify(rd);st.lastFetch=new Date().toISOString();await save(g.id,s,st);
     }
-    meta.processed++;storage.setItem(metaKey,JSON.stringify(meta));onProgress?.({...meta});
-   }catch(e){meta.error=e.message;storage.setItem(metaKey,JSON.stringify(meta));return meta;}
+    meta.processed++;await storage.setItem(metaKey,JSON.stringify(meta));onProgress?.({...meta});
+   }catch(e){meta.error=e.message;await storage.setItem(metaKey,JSON.stringify(meta));return meta;}
   }
-  meta.finishedAt=new Date().toISOString();storage.setItem(metaKey,JSON.stringify(meta));return meta;
+  meta.finishedAt=new Date().toISOString();await storage.setItem(metaKey,JSON.stringify(meta));return meta;
  }
  async function connect(secret){
   if(typeof secret!=='string'||!secret.trim())throw new Error('Enter your repository-scoped token');
@@ -103,7 +113,7 @@ export function createClient({fetchImpl=globalThis.fetch.bind(globalThis),storag
    if(policyHash!==await fingerprint(localPolicy,cryptoImpl))throw new Error('The published application and private policy differ. Reload the latest application.');
    if(!/^PD-[A-F0-9]{8}$/.test(r.data.datasetId)||!Array.isArray(r.data.groups))throw new Error('Invalid coded dataset');
    const ids=new Set();for(const g of r.data.groups){if(!/^G-[A-Z2-9]{4}$/.test(g.id)||!teachers.includes(g.reviewer)||Object.keys(g).some(k=>!['id','reviewer','students'].includes(k)))throw new Error('Roster must contain only coded group identifiers');for(const s of g.students){if(!/^S-[A-Z2-9]{6}$/.test(s.id)||ids.has(s.id)||Object.keys(s).length!==1)throw new Error('Roster must contain unique coded student identifiers');ids.add(s.id);}}
-   identity={login:user.login,id:user.id};namespace=`pd-coded:${repository}:${user.id}:${rosterHash}`;bootstrap={policy:p.data,roster:r.data,course:c.data||{version:1,reportFormat:'',referenceStyle:'',deadlines:''},repo:repository};return structuredClone(identity);
+   identity={login:user.login,id:user.id};namespace=`pd-coded:${repository}:${user.id}:${rosterHash}`;const migration=await storage.open?.(namespace);bootstrap={policy:p.data,roster:r.data,course:c.data||{version:1,reportFormat:'',referenceStyle:'',deadlines:''},repo:repository};return {...structuredClone(identity),storageMigrated:migration?.migrated||0};
   }catch(e){token='';identity=null;bootstrap=null;namespace='locked';throw e;}
  }
  async function api(p,b){
@@ -118,23 +128,25 @@ export function createClient({fetchImpl=globalThis.fetch.bind(globalThis),storag
   });
   if(url.pathname==='/api/refresh-status'){const raw=storage.getItem(`${namespace}:refresh-meta`);if(!raw)return null;const meta=JSON.parse(raw),total=bootstrap.roster.groups.length*recordStages.length;return meta.total===total?meta:{...meta,total,finishedAt:null,error:'Defence questions were added after this refresh. Refresh all groups again.'};}
   if(url.pathname==='/api/refresh-all')return serial(()=>refreshAll(b?.onProgress));
-  if(url.pathname==='/api/response')return serial(()=>{
+  if(url.pathname==='/api/response')return serial(async()=>{
    assertOwner(b.group,b.teacher,b.takeover);const st=state(b.group,b.stage);if(st.conflicts.length)throw new Error('Resolve conflicts before editing this record');const at=new Date().toISOString();
    for(const [k,v]of Object.entries(b.changes||{})){const old=st.doc.fields[k]?.value??null;if(old===v)continue;st.doc.fields[k]={value:v,by:b.teacher,at,login:identity.login};st.doc.history.push({id:cryptoImpl.randomUUID(),key:k,old,value:v,by:b.teacher,login:identity.login,at,takeover:!!b.takeover});}
-   validate(st.doc);st.dirty=true;save(b.group,b.stage,st);return st;
+   validate(st.doc);st.dirty=true;await save(b.group,b.stage,st);return st;
   });
   if(url.pathname==='/api/sync')return serial(()=>sync(b));
-  if(url.pathname==='/api/resolve')return serial(()=>{
+  if(url.pathname==='/api/resolve')return serial(async()=>{
    assertOwner(b.group,b.teacher,b.takeover);const st=state(b.group,b.stage),at=new Date().toISOString();
    for(const c of st.conflicts){const choice=b.choices?.[c.key];if(!['local','remote'].includes(choice))throw new Error('Choose a version for every conflict');const selected=c[choice];if(selected===null)delete st.doc.fields[c.key];else st.doc.fields[c.key]=selected;st.doc.history.push({id:cryptoImpl.randomUUID(),by:b.teacher,login:identity.login,at,key:c.key,action:'conflict resolution',choice,takeover:!!b.takeover});}
-   validate(st.doc);st.conflicts=[];st.dirty=true;save(b.group,b.stage,st);return st;
+   validate(st.doc);st.conflicts=[];st.dirty=true;await save(b.group,b.stage,st);return st;
   });
-  if(url.pathname==='/api/backup')return {schemaVersion:1,policyHash,rosterHash,scoringFormula,exportedAt:new Date().toISOString(),docs:bootstrap.roster.groups.flatMap(g=>recordStages.map(s=>state(g.id,s).doc))};
-  if(url.pathname==='/api/import')return serial(()=>{
+  if(url.pathname==='/api/backup')return {schemaVersion:1,policyHash,rosterHash,scoringFormula,exportedAt:new Date().toISOString(),recovery:{queuedChanges:JSON.parse(storage.getItem(`${namespace}:pd-drafts`)||'[]'),textEdits:JSON.parse(storage.getItem(`${namespace}:pd-text-drafts`)||'[]'),conflictedRecords:bootstrap.roster.groups.flatMap(g=>recordStages.map(s=>state(g.id,s))).filter(st=>st.conflicts.length)},docs:bootstrap.roster.groups.flatMap(g=>recordStages.map(s=>state(g.id,s).doc))};
+  if(url.pathname==='/api/import')return serial(async()=>{
    if(!teachers.includes(b.teacher)||b.backup?.schemaVersion!==1||b.backup?.policyHash!==policyHash||b.backup?.rosterHash!==rosterHash||!Array.isArray(b.backup?.docs))throw new Error('Incompatible backup');
-   const seen=new Set(),prepared=[];
-   for(const doc of b.backup.docs){validate(doc);const id=doc.group+'/'+doc.stage;if(seen.has(id))throw new Error('Duplicate assessment record');seen.add(id);const st=state(doc.group,doc.stage);if(st.conflicts.length)throw new Error('Resolve existing conflicts before importing');for(const [k,e]of Object.entries(doc.fields))if(st.doc.fields[k]&&st.doc.fields[k].value!==e.value)throw new Error('Backup conflicts with local work. Review it in a separate browser profile.');st.doc.fields={...st.doc.fields,...doc.fields};st.doc.history=history(st.doc.history,doc.history);validate(st.doc);st.dirty=true;prepared.push([doc.group,doc.stage,st]);}
-   storage.setItem(`${namespace}:pre-import:${Date.now()}`,JSON.stringify(bootstrap.roster.groups.flatMap(g=>recordStages.map(s=>state(g.id,s)))));for(const [g,s,st]of prepared)save(g,s,st);return {imported:prepared.length};
+   const restored=applyBackupRecovery(b.backup,cryptoImpl),seen=new Set(),prepared=[];
+   for(const doc of restored.docs){validate(doc);const id=doc.group+'/'+doc.stage;if(seen.has(id))throw new Error('Duplicate assessment record');seen.add(id);const st=state(doc.group,doc.stage);if(st.conflicts.length)throw new Error('Resolve existing conflicts before importing');for(const [k,e]of Object.entries(doc.fields))if(st.doc.fields[k]&&st.doc.fields[k].value!==e.value)throw new Error('Backup conflicts with local work. Review it in a separate browser profile.');st.doc.fields={...st.doc.fields,...doc.fields};st.doc.history=history(st.doc.history,doc.history);validate(st.doc);st.dirty=true;prepared.push([doc.group,doc.stage,st]);}
+   const conflicted=b.backup.recovery?.conflictedRecords||[];if(!Array.isArray(conflicted))throw new Error('Invalid conflict backup');
+   const seenConflicts=new Set();for(const incoming of conflicted){validate(incoming.doc);validate(incoming.base);if(incoming.doc.group!==incoming.base.group||incoming.doc.stage!==incoming.base.stage||!Array.isArray(incoming.conflicts)||!incoming.conflicts.length)throw new Error('Invalid conflict backup');const id=incoming.doc.group+'/'+incoming.doc.stage;if(seenConflicts.has(id))throw new Error('Duplicate conflict backup');seenConflicts.add(id);const target=prepared.find(([g,s])=>g===incoming.doc.group&&s===incoming.doc.stage);if(!target||JSON.stringify(target[2].doc.fields)!==JSON.stringify(incoming.doc.fields))throw new Error('Conflicted backup differs from pending or local edits. Review before restoring.');target[2]={...structuredClone(incoming),dirty:true};}
+   const writes=[[`${namespace}:pre-import:${Date.now()}`,JSON.stringify(bootstrap.roster.groups.flatMap(g=>recordStages.map(s=>state(g.id,s))))],...prepared.map(([g,s,st])=>[recordKey(g,s),JSON.stringify(st)])];if(storage.setItems)await storage.setItems(writes);else for(const [k,v]of writes)await storage.setItem(k,v);return {imported:prepared.length};
   });
   if(url.pathname==='/api/export.csv'){
    const rows=[['student_id','group_id','reviewer','status','checklist_coverage','minimum_secured','possible_maximum','final_grade','scoring_formula',...bootstrap.policy.criteria.map(c=>c.title)]];
